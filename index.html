@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Threat-centric AWS Security Maturity Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .chart-wrapper{position:relative;width:100%;height:70vh}
+    a.new-window{color:darkolivegreen;text-decoration:underline}
+
+    #radar{
+      transform:scale(1.15);
+      transform-origin:top center;
+      margin-top:20px;
+    }
+
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-6">
+  <h1 class="text-3xl font-mono mb-6 text-cyan-300">Threat-centric AWS Security Maturity Dashboard</h1>
+
+  <!-- Open file -->
+  <div id="loader" class="mb-6">
+    <button id="openFileBtn" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded">Open data file</button>
+  </div>
+
+  <!-- Main app -->
+  <div id="main" class="hidden">
+    <div id="tabs" class="flex space-x-3 mb-6 overflow-x-auto"></div>
+    <div id="panes"></div>
+  </div>
+
+<script>
+let fileHandle, updatedCfg;
+
+// 1) Open and read the YAML
+openFileBtn.addEventListener('click', async () => {
+  [fileHandle] = await window.showOpenFilePicker({
+    types:[{description:'YAML',accept:{'text/yaml':['.yaml','.yml']}}],multiple:false});
+  const text = await (await fileHandle.getFile()).text();
+  try{updatedCfg = jsyaml.load(text);}catch(e){return alert('YAML parse error: '+e.message);}
+  if(updatedCfg.categories && !updatedCfg.security_domains){updatedCfg.security_domains = updatedCfg.categories;delete updatedCfg.categories;}
+  loader.classList.add('hidden');
+  main.classList.remove('hidden');
+  initApp(updatedCfg);
+});
+
+async function saveChanges(){
+  const yamlText = jsyaml.dump(updatedCfg);
+  const writable = await fileHandle.createWritable();
+  await writable.write(yamlText);
+  await writable.close();
+  alert('✅ Data file was updated');
+}
+
+function initApp(cfg){
+  const domains = Array.isArray(cfg.security_domains)?cfg.security_domains:[];
+  const tabsEl = document.getElementById('tabs');
+  const panesEl = document.getElementById('panes');
+  tabsEl.innerHTML='';panesEl.innerHTML='';
+
+  const impactMap={low:1,medium:2,high:3}, effortMap={low:1,medium:2,high:3};
+  const weight=ai=>impactMap[ai.impact]/effortMap[ai.effort];
+  const domField=(dom,f)=>{const items=(dom.security_controls||[]).flatMap(c=>c.action_items||[]);const ws=items.map(weight),ss=items.map(ai=>ai[f]*weight(ai)),W=ws.reduce((a,b)=>a+b,0);return W?ss.reduce((a,b)=>a+b,0)/W:0;};
+  const mBefore=d=>domField(d,'before'),mNow=d=>domField(d,'maturity'),mGoal=d=>domField(d,'goal');
+  const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+
+  const tabs=[{name:'Dashboard',slug:'dashboard'},...domains.map(d=>({name:d.name,slug:slug(d.name)}))];
+  let chart;
+  function drawChart(){
+    const ctx=document.getElementById('radar')?.getContext('2d');if(!ctx)return;
+    const labels=domains.map(d=>d.name),before=domains.map(mBefore),now=domains.map(mNow),goal=domains.map(mGoal);
+    if(chart)chart.destroy();
+    chart=new Chart(ctx,{type:'radar',data:{labels,datasets:[{label:'Before',data:before,fill:true,backgroundColor:'rgba(54,162,235,0.2)',borderColor:'rgba(54,162,235,0.8)',borderWidth:2},{label:'Now',data:now,fill:true,backgroundColor:'rgba(255,99,132,0.2)',borderColor:'rgba(255,99,132,0.8)',borderWidth:2},{label:'Goal',data:goal,fill:true,backgroundColor:'rgba(255,205,86,0.2)',borderColor:'rgba(255,205,86,0.8)',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:3,ticks:{stepSize:1,color:'#06B6D4'},grid:{color:'rgba(6,182,212,0.2)'},angleLines:{color:'rgba(6,182,212,0.3)'},pointLabels:{color:'#38BDF8',font:{size:12}}}},plugins:{legend:{position:'bottom',labels:{color:'#22D3EE'}}}}});}
+
+  const dash=document.createElement('div');dash.id='pane-dashboard';dash.innerHTML='<div class="chart-wrapper"><canvas id="radar"></canvas></div>';panesEl.appendChild(dash);
+
+  domains.forEach((dom,di)=>{
+    const slugName=slug(dom.name);const pane=document.createElement('div');pane.id='pane-'+slugName;pane.className='hidden';
+    const nb=mBefore(dom).toFixed(2),nn=mNow(dom).toFixed(2),ng=mGoal(dom).toFixed(2);
+    let html=`<div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 space-y-2 md:space-y-0"><div class="space-x-4 font-semibold"><span id="domain-before-${di}" style="color:rgba(54,162,235,0.8)">Maturity Before: ${nb} / 3</span><span id="domain-now-${di}" style="color:rgba(255,99,132,0.8)">Maturity Now: ${nn} / 3</span><span id="domain-goal-${di}" style="color:rgba(255,205,86,0.8)">Maturity Goal: ${ng} / 3</span></div><button onclick="saveChanges()" class="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded">Save Changes</button></div><table class="table-auto w-full border-collapse mb-8"><thead><tr><th class="border p-2">Action Item</th><th class="border p-2">Implementation</th><th class="border p-2">Comment</th><th class="border p-2">Impact</th><th class="border p-2">Effort</th><th class="border p-2">Before</th><th class="border p-2">Now</th><th class="border p-2">Goal</th></tr></thead><tbody>`;
+
+    (dom.security_controls||[]).forEach((ctrl,ci)=>{
+      html+=`<tr class="bg-gray-800"><td colspan="8" class="border border-gray-600 p-2 font-mono text-cyan-300">${ctrl.code}: ${ctrl.text}</td></tr>`;
+      (ctrl.action_items||[]).forEach((ai,ai_i)=>{
+        ai.before=ai.before??0;ai.maturity=ai.maturity??0;ai.goal=ai.goal??0;ai.comment=ai.comment??'';
+        html+=`<tr><td class="border p-2">${ai.description}</td><td class="border p-2">${ai.implementation}</td><td class="border p-2 w-64"><textarea data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="comment" rows="3" class="bg-gray-800 text-gray-200 p-1 rounded w-full" placeholder="Add comments...">${ai.comment}</textarea></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="impact" class="bg-gray-800 text-gray-200 p-1 rounded">${['low','medium','high'].map(x=>`<option value="${x}"${ai.impact===x?' selected':''}>${x}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="effort" class="bg-gray-800 text-gray-200 p-1 rounded">${['low','medium','high'].map(x=>`<option value="${x}"${ai.effort===x?' selected':''}>${x}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="before" class="bg-gray-800 text-gray-200 p-1 rounded">${[0,1,2,3].map(v=>`<option value="${v}"${ai.before===v?' selected':''}>${['No adoption','Ad-hoc','Partial','Full'][v]}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="maturity" class="bg-gray-800 text-gray-200 p-1 rounded">${[0,1,2,3].map(v=>`<option value="${v}"${ai.maturity===v?' selected':''}>${['No adoption','Ad-hoc','Partial','Full'][v]}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="goal" class="bg-gray-800 text-gray-200 p-1 rounded">${[0,1,2,3].map(v=>`<option value="${v}"${ai.goal===v?' selected':''}>${['No adoption','Ad-hoc','Partial','Full'][v]}</option>`).join('')}</select></td></tr>`;
+      });
+    });
+    html+='</tbody></table>';
+    pane.innerHTML=html;panesEl.appendChild(pane);
+  });
+
+  panesEl.addEventListener('input',handleChange);
+  panesEl.addEventListener('change',handleChange);
+  function handleChange(e){
+    const el=e.target;const {di,ci,ai,prop}=el.dataset;if(di===undefined)return;
+    const item=updatedCfg.security_domains[+di].security_controls[+ci].action_items[+ai];
+    if(prop==='comment'){item.comment=el.value;}else if(['impact','effort'].includes(prop)){item[prop]=el.value;}else{item[prop]=+el.value;}
+    const nb=mBefore(updatedCfg.security_domains[di]).toFixed(2);
+    const nn=mNow(updatedCfg.security_domains[di]).toFixed(2);
+    const ng=mGoal(updatedCfg.security_domains[di]).toFixed(2);
+    document.getElementById(`domain-before-${di}`).textContent=`Maturity Before: ${nb} / 3`;
+    document.getElementById(`domain-now-${di}`).textContent=`Maturity Now: ${nn} / 3`;
+    document.getElementById(`domain-goal-${di}`).textContent=`Maturity Goal: ${ng} / 3`;
+    if(document.getElementById('pane-dashboard')&&!document.getElementById('pane-dashboard').classList.contains('hidden'))drawChart();
+  }
+
+  function activate(slugName){
+    tabs.forEach(t=>{const btn=document.getElementById('tab-'+t.slug),pane=document.getElementById('pane-'+t.slug);if(!btn||!pane)return;btn.classList.toggle('border-b-2',t.slug===slugName);btn.classList.toggle('border-cyan-400',t.slug===slugName);btn.classList.toggle('text-cyan-300',t.slug===slugName);pane.classList.toggle('hidden',t.slug!==slugName);});
+    if(slugName==='dashboard')drawChart();
+  }
+
+  tabs.forEach((t,i)=>{const btn=document.createElement('button');btn.id='tab-'+t.slug;btn.textContent=t.name;btn.className='px-4 py-2 cursor-pointer hover:text-cyan-400';btn.onclick=()=>activate(t.slug);tabsEl.appendChild(btn);if(i===0)activate(t.slug);});
+}
+</script>
+
+</body>
+</html>

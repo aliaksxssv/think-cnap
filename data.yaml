@@ -1,0 +1,842 @@
+security_domains:
+  - name: Security Foundations
+    security_controls:
+      - code: SEC01-BP01
+        text: Separate workloads using accounts
+        action_items:
+          - description: >-
+              Automate the process of AWS accounts provisioning and
+              deprovisioning
+            implementation: >-
+              Use AWS Organizations and AWS Control Tower to manage
+              multi-account structure
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC01-BP02
+        text: Secure account root user and properties
+        action_items:
+          - description: Don't use root user for business as usual tasks
+            implementation: >-
+              Configure MFA for the root user. Don't create access and secret
+              keys for the root user. Enable centralized root access in IAM and
+              delete root user credentials for the AWS Organizations member
+              accounts
+            impact: high
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+          - description: Implement root user activity monitoring
+            implementation: >-
+              Configure root user usage monitoring via AWS CloudTrail logs or
+              AWS GuardDuty findings Policy:IAMUser/RootCredentialUsage and
+              Policy:IAMUser/ShortTermRootCredentialUsage
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC01-BP03
+        text: Identify and validate control objectives
+        action_items:
+          - description: Implement security controls based on the risks
+            implementation: >-
+              Take a look at <a target="_blank" class="new-window"
+              href="https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_securely_operate_control_objectives.html">AWS
+              Well-Architected Framework</a>
+            impact: medium
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC01-BP04
+        text: Stay up to date with security threats and recommendations
+        action_items:
+          - description: Regular update security tools configuration
+            implementation: >-
+              Use AWS native tools like GuardDuty, SecurityHub, etc to delegate
+              updates to the cloud provider
+            impact: high
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC01-BP05
+        text: Reduce security management scope
+        action_items:
+          - description: Use AWS managed services
+            implementation: >-
+              Use AWS managed services like EKS, RDS to delegate control plane
+              management
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC01-BP06
+        text: Automate deployment of standard security controls
+        action_items:
+          - description: Deploy security tools automatically
+            implementation: Use "auto-enable" feature for AWS GuardDuty and SecurityHub
+            impact: high
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC01-BP07
+        text: Identify threats and prioritize mitigations using a threat model
+        action_items:
+          - description: Implement threat modelling process
+            implementation: >-
+              Try out <a target="_blank" class="new-window"
+              href="https://catalog.workshops.aws/threatmodel/en-US">Threat
+              modeling for builders</a>
+            impact: medium
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC01-BP08
+        text: Evaluate and implement new security services and features regularly
+        action_items:
+          - description: Subscribe to security announcements
+            implementation: >-
+              Subscribe to <a target="_blank" class="new-window
+              href="https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_sns.html">IDS
+              AWS GuardDuty</a> and <a target="_blank" class="new-window
+              href="https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-announcements.html">CSPM
+              AWS SecurityHub</a> product updates
+            impact: medium
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+  - name: Identity & Access Management
+    security_controls:
+      - code: SEC02-BP01
+        text: Use strong sign-in mechanisms
+        action_items:
+          - description: Use strong user credentials
+            implementation: Setup AWS Password Policy and MFA
+            impact: high
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC02-BP02
+        text: Use temporary credentials
+        action_items:
+          - description: Don't use IAM users for the service accounts
+            implementation: >-
+              Use IAM roles for you services and third-party integrations to
+              grant access to the AWS resources. Don't use IMDS v1
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC02-BP03
+        text: Store and use secrets securely
+        action_items:
+          - description: Use secrets management services
+            implementation: >-
+              Don't store credentials inside the code or configuration files.
+              Use HashiCorp Vault or AWS Secrets Manager. Aggregate AWS Health
+              findings in AWS SecurityHub and configure alerts related IAM
+              credentials exposure 
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC02-BP04
+        text: Rely on a centralized identity provider
+        action_items:
+          - description: Delegate Identity Management to the Identity Provider
+            implementation: >-
+              Delelgate Identity Management to the Identity Provider. For
+              example, configure SAML and SCIM with Okta and IAM Identity
+              Center. More details
+              https://docs.aws.amazon.com/singlesignon/latest/userguide/gs-okta.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC02-BP05
+        text: Audit and rotate credentials periodically
+        action_items:
+          - description: Rotate credentials regularly
+            implementation: Automate the process of credentials rotation
+            impact: medium
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC02-BP06
+        text: Employ user groups and attributes
+        action_items:
+          - description: >-
+              Use groups and attributes to manage identities and simplify
+              permissions management
+            implementation: Consider using centralized Identity Provider, enable SCIM
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP01
+        text: Define access requirements
+        action_items:
+          - description: Define access requirements
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_define.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP02
+        text: Grant least privilege access
+        action_items:
+          - description: Don't try to chase the tail
+            implementation: >-
+              Define good enough approach to grant AWS IAM access and focus on
+              sensitive permisissions managements
+              https://github.com/primeharbor/sensitive_iam_actions
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP03
+        text: Establish emergency access process
+        action_items:
+          - description: Establish emergency access process
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_emergency_process.html
+            impact: medium
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP04
+        text: Reduce permissions continuously
+        action_items:
+          - description: Reduce permissions continuously
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_continuous_reduction.html
+            impact: medium
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP05
+        text: Define permission guardrails for your organization
+        action_items:
+          - description: Define permission guardrails for your organization
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_define_guardrails.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP06
+        text: Manage access based on lifecycle
+        action_items:
+          - description: Manage access based on lifecycle
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_lifecycle.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP07
+        text: Analyze public and cross-account access
+        action_items:
+          - description: Analyze public and cross-account access
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_analyze_cross_account.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP08
+        text: Share resources securely within your organization
+        action_items:
+          - description: Share resources securely within your organization
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_share_securely.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC03-BP09
+        text: EShare resources securely with a third party
+        action_items:
+          - description: Share resources securely with a third party
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_share_securely_third_party.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+  - name: Detection
+    security_controls:
+      - code: SEC04-BP01
+        text: Configure AWS logging
+        action_items:
+          - description: Configure AWS control planes and data planes logging
+            implementation: >-
+              Create multi-region AWS CloudTrail trail and apply it to your AWS
+              Organization. Enable logging for managament and data events.
+              Important! AWS EKS logs are not a part of AWS CloudTrail logs.
+              Additional configuration is required
+            impact: high
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+          - description: Protect the AWS logs
+            implementation: >-
+              Enbale AWS SSE-KMS encryption for AWS CloudTrail logs and validate
+              log files
+            impact: medium
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC04-BP02
+        text: Capture logs, findings, and metrics in standardized locations
+        action_items:
+          - description: Implement Security Information & Event Management platform
+            implementation: >-
+              Consider deploying <a target="_blank" class="new-window"
+              href="https://github.com/aws-samples/siem-on-amazon-opensearch-service">SIEM
+              on Amazon OpenSearch service</a> or use <a target="_blank"
+              class="new-window"
+              href="https://www.elastic.co/elasticsearch">Elasticsearch</a>
+            impact: high
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC04-BP03
+        text: Correlate and enrich security alerts
+        action_items:
+          - description: Implement Intrusion Detection System
+            implementation: >-
+              Deploy <a target="_blank" class="new-window"
+              href="https://aws.amazon.com/guardduty/">AWS GuardDuty</a> and
+              use  <a target="_blank" class="new-window"
+              href="https://www.elastic.co/docs/reference/security/prebuilt-rules">prebuilt
+              Elasticsearch rules</a> for AWS CloudTrail logs
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC04-BP04
+        text: Initiate remediation for non-compliant resources
+        action_items:
+          - description: Implement Cloud Security Posture Management System
+            implementation: >-
+              Deploy <a target="_blank" class="new-window"
+              href="https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-security-hub-adv.html">AWS
+              SecurityHub</a> or use open-source CSPM tools like <a
+              target="_blank" class="new-window"
+              href="https://prowler.com/">Prowler</a> or <a target="_blank"
+              class="new-window"
+              href="https://github.com/projectdiscovery/nuclei">Nuclei</a>
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+  - name: Infrastructure Protection
+    security_controls:
+      - code: SEC05-BP01
+        text: Create network layers
+        action_items:
+          - description: Create network layers
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_protection_create_layers.html
+            impact: high
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC05-BP02
+        text: Control traffic flow within your network layers
+        action_items:
+          - description: Control traffic flow within your network layers
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_protection_layered.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC05-BP03
+        text: Implement inspection-based protection
+        action_items:
+          - description: Implement inspection-based protection
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_protection_inspection.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC05-BP04
+        text: Automate network protection
+        action_items:
+          - description: Automate network protection
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_auto_protect.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC06-BP01
+        text: Perform vulnerability management
+        action_items:
+          - description: Perform vulnerability management
+            implementation: Amazon Inspector, ECR Image Scanning
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC06-BP02
+        text: Provision compute from hardened images
+        action_items:
+          - description: Provision compute from hardened images
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_hardened_images.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC06-BP03
+        text: Reduce manual management and interactive access
+        action_items:
+          - description: Reduce manual management and interactive access
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_reduce_manual_management.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC06-BP04
+        text: Validate software integrity
+        action_items:
+          - description: Validate software integrity
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_validate_software_integrity.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC06-BP05
+        text: Automate compute protection
+        action_items:
+          - description: Automate compute protection
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_auto_protection.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+  - name: Data Protection
+    security_controls:
+      - code: SEC07-BP01
+        text: Understand your data classification scheme
+        action_items:
+          - description: Understand your data classification scheme
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_identify_data.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC07-BP02
+        text: Apply data protection controls based on data sensitivity
+        action_items:
+          - description: Apply data protection controls based on data sensitivity
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_define_protection.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC07-BP03
+        text: Automate identification and classification
+        action_items:
+          - description: Automate identification and classification
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_auto_classification.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC07-BP04
+        text: Define scalable data lifecycle management
+        action_items:
+          - description: Define scalable data lifecycle management
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_lifecycle_management.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC08-BP01
+        text: Implement secure key management
+        action_items:
+          - description: Implement secure key management
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_key_mgmt.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC08-BP02
+        text: Enforce encryption at rest
+        action_items:
+          - description: Enforce encryption at rest
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_encrypt.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC08-BP03
+        text: Automate data at rest protection
+        action_items:
+          - description: Automate data at rest protection
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_automate_protection.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC08-BP04
+        text: Enforce access control
+        action_items:
+          - description: Enforce access control
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_access_control.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC09-BP01
+        text: Implement secure key and certificate management
+        action_items:
+          - description: Implement secure key and certificate management
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_transit_key_cert_mgmt.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC09-BP02
+        text: Enforce encryption in transit
+        action_items:
+          - description: Enforce encryption in transit
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_transit_encrypt.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC09-BP03
+        text: Authenticate network communications
+        action_items:
+          - description: Authenticate network communications
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_transit_authentication.html
+            impact: medium
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+  - name: Incident Response
+    security_controls:
+      - code: SEC10-BP01
+        text: Identify key personnel and external resources
+        action_items:
+          - description: Identify key personnel and external resources
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_identify_personnel.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC10-BP02
+        text: Develop incident management plans
+        action_items:
+          - description: Develop incident management plans
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_develop_management_plans.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC10-BP03
+        text: Prepare forensic capabilities
+        action_items:
+          - description: Prepare forensic capabilities
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_prepare_forensic.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC10-BP04
+        text: Develop and test security incident response playbooks
+        action_items:
+          - description: Develop and test security incident response playbooks
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_playbooks.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC10-BP05
+        text: Pre-provision access
+        action_items:
+          - description: Pre-provision access
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_pre_provision_access.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC10-BP06
+        text: Pre-deploy tools
+        action_items:
+          - description: Pre-deploy tools
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_pre_deploy_tools.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC10-BP07
+        text: Run simulations
+        action_items:
+          - description: Run simulations
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_run_game_days.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC10-BP08
+        text: Post-incident activity
+        action_items:
+          - description: Post-incident activity
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_establish_incident_framework.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+  - name: Application Security
+    security_controls:
+      - code: SEC11-BP01
+        text: Train for application security
+        action_items:
+          - description: Train for application security
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_train_for_application_security.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC11-BP02
+        text: Automate testing throughout the development and release lifecycle
+        action_items:
+          - description: Automate testing throughout the development and release lifecycle
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_automate_testing_throughout_lifecycle.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC11-BP03
+        text: Perform regular penetration testing
+        action_items:
+          - description: Perform regular penetration testing
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_perform_regular_penetration_testing.html
+            impact: medium
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+          - description: Implement Bug Bounty program
+            implementation: >-
+              Bug Bounty program will allow you to ensure continuous application
+              security testing by high qualified hackers via specialized
+              platforms
+            impact: high
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC11-BP04
+        text: Conduct code reviews
+        action_items:
+          - description: Conduct code reviews
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_manual_code_reviews.html
+            impact: medium
+            effort: high
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC11-BP05
+        text: Centralize services for packages and dependencies
+        action_items:
+          - description: Centralize services for packages and dependencies
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_centralize_services_for_packages_and_dependencies.html
+            impact: medium
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC11-BP06
+        text: Deploy software programmatically
+        action_items:
+          - description: Deploy software programmatically
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_deploy_software_programmatically.html
+            impact: high
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC11-BP07
+        text: Regularly assess security properties of the pipelines
+        action_items:
+          - description: Regularly assess security properties of the pipelines
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_regularly_assess_security_properties_of_pipelines.html
+            impact: high
+            effort: low
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
+      - code: SEC11-BP08
+        text: Build a program that embeds security ownership in workload teams
+        action_items:
+          - description: Build a program that embeds security ownership in workload teams
+            implementation: >-
+              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_build_program_that_embeds_security_ownership_in_teams.html
+            impact: medium
+            effort: medium
+            maturity: 2
+            before: 1
+            goal: 3
+            comment: ''
