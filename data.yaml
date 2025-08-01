@@ -4,839 +4,1035 @@ security_domains:
       - code: SEC01-BP01
         text: Separate workloads using accounts
         action_items:
-          - description: >-
-              Automate the process of AWS accounts provisioning and
-              deprovisioning
-            implementation: >-
-              Use AWS Organizations and AWS Control Tower to manage
-              multi-account structure
+          - measure: 'MITIGATION: Automate the process of AWS accounts provisioning and deprovisioning'
+            comment: >-
+              Use <a href='https://aws.amazon.com/organizations/' target='_blank'>AWS Organizations</a> and  <a
+              href='https://aws.amazon.com/controltower/' target='_blank'>AWS Control Tower</a> to  manage multi-account
+              structure. <br><br> <strong>Key Benefits:</strong> <br>• Better blast radius control <br>• Compliance
+              boundaries <br>• Centralized billing and management"
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Implement AWS accounts separation'
+            comment: >-
+              <strong>Recommended approach:</strong> <br>• Environment separation: dev/staging/prod <br>• Workload
+              separation: by application or team <br>• Use namespaces for logical separation within clusters
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: aws
+          - measure: 'MITIGATION: Automate the process of Kubernetes cluster provisioning and deprovisioning'
+            comment: Use AWS Terraform modules to provision and deprovision Kubernetes clusters
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
+          - measure: 'MITIGATION: Implement kubernetes workloads separation'
+            comment: >-
+              <strong>Recommended approach:</strong> <br>• Environment separation: dev/staging/prod <br>• Workload
+              separation: by application or team <br>• Use namespaces for logical separation within clusters
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC01-BP02
         text: Secure account root user and properties
         action_items:
-          - description: Don't use root user for business as usual tasks
-            implementation: >-
-              Configure MFA for the root user. Don't create access and secret
-              keys for the root user. Enable centralized root access in IAM and
-              delete root user credentials for the AWS Organizations member
-              accounts
+          - measure: 'MITIGATION: Don''t use root user for business as usual tasks'
+            comment: >-
+              Configure MFA for the root user. Don't create access and secret keys for the root user.  Enable
+              centralized root access in IAM and delete root user credentials for the AWS Organizations member accounts
+            mitre: undefined
             impact: high
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
-          - description: Implement root user activity monitoring
-            implementation: >-
-              Configure root user usage monitoring via AWS CloudTrail logs or
-              AWS GuardDuty findings Policy:IAMUser/RootCredentialUsage and
-              Policy:IAMUser/ShortTermRootCredentialUsage
+            tags: aws
+          - measure: 'DETECTION: Implement root user activity monitoring. '
+            comment: >-
+              Configure root user usage monitoring via AWS CloudTrail logs or AWS GuardDuty  findings
+              Policy:IAMUser/RootCredentialUsage and Policy:IAMUser/ShortTermRootCredentialUsage
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC01-BP03
         text: Identify and validate control objectives
         action_items:
-          - description: Implement security controls based on the risks
-            implementation: >-
-              Take a look at <a target="_blank" class="new-window"
-              href="https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_securely_operate_control_objectives.html">AWS
-              Well-Architected Framework</a>
+          - measure: 'DETECTION: Manage security controls according to the risks'
+            comment: >-
+              Enable those security frameworks in your CSPM which are relevant to your workloads, adjust the severity of
+              the controls.  <br> <br> In case of AWS SecurityHub Automations usage take into account that they are 
+              region-linked, even if you congifure Delegated Administartor account and set home region for cross-account
+              / cross-region security findings aggregation.  That means you need to configure the automations in each
+              region you have in your Delegated Administartor account.
+            mitre: undefined
             impact: medium
             effort: high
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC01-BP04
         text: Stay up to date with security threats and recommendations
         action_items:
-          - description: Regular update security tools configuration
-            implementation: >-
-              Use AWS native tools like GuardDuty, SecurityHub, etc to delegate
-              updates to the cloud provider
+          - measure: 'MITIGATION: Regular update security tools configuration'
+            comment: Use AWS native tools like GuardDuty, SecurityHub, etc to delegate updates to the cloud provider
+            mitre: DefenseEvasion:ImpairDefenses/DowngradeAttack
             impact: high
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC01-BP05
         text: Reduce security management scope
         action_items:
-          - description: Use AWS managed services
-            implementation: >-
-              Use AWS managed services like EKS, RDS to delegate control plane
-              management
+          - measure: 'MITIGATION: Use AWS managed services like RDS to delegate control plane management to the cloud provider'
+            comment: >-
+              Managed services reduce operational overhead and provide built-in security features.  However, ensure you
+              understand the shared responsibility model for each service.
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Use AWS EKS to delegate control plane management to the cloud provider'
+            comment: >-
+              AWS EKS provides a fully managed Kubernetes service that handles the control plane,  reducing the need for
+              manual management. However, you still need to manage the worker nodes  and the application workloads
+            mitre: undefined
+            impact: medium
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC01-BP06
         text: Automate deployment of standard security controls
         action_items:
-          - description: Deploy security tools automatically
-            implementation: Use "auto-enable" feature for AWS GuardDuty and SecurityHub
+          - measure: 'MITIGATION: Deploy security tools automatically '
+            comment: >-
+              Use "auto-enable" feature for AWS GuardDuty and SecurityHub to automate  the process of security tools
+              deployment and configuration. <br> <br> <strong>Key Benefits:</strong> <br>• Automate the process of
+              security tools deployment <br>• Reduce the risk of human error <br>• Ensure consistent security posture
+            mitre: undefined
             impact: high
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC01-BP07
         text: Identify threats and prioritize mitigations using a threat model
         action_items:
-          - description: Implement threat modelling process
-            implementation: >-
-              Try out <a target="_blank" class="new-window"
-              href="https://catalog.workshops.aws/threatmodel/en-US">Threat
-              modeling for builders</a>
+          - measure: 'MITIGATION: Do threat modelling exercise for your workloads'
+            comment: >-
+              Take a look at AWS Workshop related <a target="_blank" class="new-window"
+              href="https://catalog.workshops.aws/threatmodel/en-US">threat modelling</a> process <br> <br> <strong>Key
+              Benefits:</strong> <br>• Identify potential security risks on early stage <br>• Prioritize mitigations
+              based on risk level
+            mitre: undefined
             impact: medium
             effort: high
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC01-BP08
         text: Evaluate and implement new security services and features regularly
         action_items:
-          - description: Subscribe to security announcements
-            implementation: >-
+          - measure: 'DETECTION: Subscribe to vendor updates to be aware of the latest security features and best practices'
+            comment: >-
               Subscribe to <a target="_blank" class="new-window
-              href="https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_sns.html">IDS
-              AWS GuardDuty</a> and <a target="_blank" class="new-window
-              href="https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-announcements.html">CSPM
-              AWS SecurityHub</a> product updates
+              href="https://docs.aws.amazon.com/guardduty/latest/ug/guardduty_sns.html">IDS AWS GuardDuty</a> and  <a
+              target="_blank" class="new-window
+              href="https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-announcements.html">CSPM AWS
+              SecurityHub</a> product updates to stay up to date with the latest security features and best practices
+            mitre: undefined
             impact: medium
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
   - name: Identity & Access Management
     security_controls:
       - code: SEC02-BP01
         text: Use strong sign-in mechanisms
         action_items:
-          - description: Use strong user credentials
-            implementation: Setup AWS Password Policy and MFA
+          - measure: Setup AWS Password Policy and enforce MFA
+            mitre: undefined
             impact: high
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC02-BP02
         text: Use temporary credentials
         action_items:
-          - description: Don't use IAM users for the service accounts
-            implementation: >-
-              Use IAM roles for you services and third-party integrations to
-              grant access to the AWS resources. Don't use IMDS v1
+          - measure: >-
+              MITIGATION: Use IAM roles for you services and third-party integrations to grant access to the AWS
+              resources. Don't use IMDS v1
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Enforce IMDS v2'
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: aws
       - code: SEC02-BP03
         text: Store and use secrets securely
         action_items:
-          - description: Use secrets management services
-            implementation: >-
-              Don't store credentials inside the code or configuration files.
-              Use HashiCorp Vault or AWS Secrets Manager. Aggregate AWS Health
-              findings in AWS SecurityHub and configure alerts related IAM
-              credentials exposure 
+          - measure: Use secrets management services
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC02-BP04
         text: Rely on a centralized identity provider
         action_items:
-          - description: Delegate Identity Management to the Identity Provider
-            implementation: >-
-              Delelgate Identity Management to the Identity Provider. For
-              example, configure SAML and SCIM with Okta and IAM Identity
-              Center. More details
-              https://docs.aws.amazon.com/singlesignon/latest/userguide/gs-okta.html
+          - measure: Delegate Identity Management to the Identity Provider
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC02-BP05
         text: Audit and rotate credentials periodically
         action_items:
-          - description: Rotate credentials regularly
-            implementation: Automate the process of credentials rotation
+          - measure: >-
+              DETECTION: Detect unused credentials. AWS IAM Access Analyzer can detect credentials based on inactivity
+              period and generate security finding in AWS SecurityHub
+            mitre: InitialAccess:ValidAccounts/CloudAccounts
+            impact: high
+            effort: low
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: aws
+          - measure: Rotate credentials regularly
+            mitre: Automate the process of credentials rotation
             impact: medium
             effort: high
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC02-BP06
         text: Employ user groups and attributes
         action_items:
-          - description: >-
-              Use groups and attributes to manage identities and simplify
-              permissions management
-            implementation: Consider using centralized Identity Provider, enable SCIM
+          - measure: Use groups and attributes to manage identities and simplify permissions management
+            mitre: Consider using centralized Identity Provider, enable SCIM
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP01
         text: Define access requirements
         action_items:
-          - description: Define access requirements
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_define.html
+          - measure: Define access requirements
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP02
         text: Grant least privilege access
         action_items:
-          - description: Don't try to chase the tail
-            implementation: >-
-              Define good enough approach to grant AWS IAM access and focus on
-              sensitive permisissions managements
-              https://github.com/primeharbor/sensitive_iam_actions
+          - measure: >-
+              MITIGATION: Don't try to chase the tail. Good enough is good enough. Find optimal balance between security
+              and usability
+            mitre: undefined
+            impact: medium
+            effort: high
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: aws
+          - measure: Use Roles and RoleBindings to manage access to the resources
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: kubernetes
       - code: SEC03-BP03
         text: Establish emergency access process
         action_items:
-          - description: Establish emergency access process
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_emergency_process.html
+          - measure: Establish emergency access process
+            mitre: undefined
             impact: medium
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP04
         text: Reduce permissions continuously
         action_items:
-          - description: Reduce permissions continuously
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_continuous_reduction.html
+          - measure: Reduce permissions continuously
+            mitre: undefined
             impact: medium
             effort: high
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP05
         text: Define permission guardrails for your organization
         action_items:
-          - description: Define permission guardrails for your organization
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_define_guardrails.html
+          - measure: Define permission guardrails for your organization
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP06
         text: Manage access based on lifecycle
         action_items:
-          - description: Manage access based on lifecycle
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_lifecycle.html
+          - measure: Manage access based on lifecycle
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP07
         text: Analyze public and cross-account access
         action_items:
-          - description: Analyze public and cross-account access
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_analyze_cross_account.html
+          - measure: >-
+              Deploy AWS IAM Access Analyzer and configure external access analyzer. Used delegated administrator AWS
+              Account. This will allow you to detect public resources and cross-account access outside the trusted zone
+              (your AWS Account or AWS Organization)
+            mitre: Persistance:Account Manipulation/Additional Cloud Roles
             impact: high
-            effort: medium
-            maturity: 2
+            effort: low
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP08
         text: Share resources securely within your organization
         action_items:
-          - description: Share resources securely within your organization
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_share_securely.html
+          - measure: Share resources securely within your organization
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC03-BP09
         text: EShare resources securely with a third party
         action_items:
-          - description: Share resources securely with a third party
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_permissions_share_securely_third_party.html
+          - measure: Share resources securely with a third party
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
   - name: Detection
     security_controls:
       - code: SEC04-BP01
         text: Configure AWS logging
         action_items:
-          - description: Configure AWS control planes and data planes logging
-            implementation: >-
-              Create multi-region AWS CloudTrail trail and apply it to your AWS
-              Organization. Enable logging for managament and data events.
-              Important! AWS EKS logs are not a part of AWS CloudTrail logs.
-              Additional configuration is required
+          - measure: >-
+              DETECTION: Configure AWS CloudTrail service
+            comment: >-
+              Configure AWS CloudTrail to get management and data events. Create multi-region
+              trail and apply it to your AWS Organization. Export AWS CloudTrail logs to S3 bucket.
+            mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: high
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
-          - description: Protect the AWS logs
-            implementation: >-
-              Enbale AWS SSE-KMS encryption for AWS CloudTrail logs and validate
-              log files
+            tags: aws
+          - measure: 'DETECTION: Configure Kubernetes audit logs'
+            comment: >-
+              Configure Kubernetes audit policy to catch API calls. In case of AWS EKS, audit logs 
+              are stored in AWS CloudWatch
+            mitre: DefenseEvasion:DisableOrModifyCloudLogs
+            impact: high
+            effort: low
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
+          - measure: >-
+              MITIGATION: Protect the AWS logs
+            comment: >-
+              Enable AWS SSE-KMS encryption for AWS CloudTrail logs and log files validation.
+              <br>
+              <br>
+              Configure SCP Policy to prevent the modification of AWS CloudTrail logging configuration.
+            mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: medium
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC04-BP02
         text: Capture logs, findings, and metrics in standardized locations
         action_items:
-          - description: Implement Security Information & Event Management platform
-            implementation: >-
+          - measure: >-
+              DETECTION: Implement Security Information & Event Management platform (SIEM)
+            comment: >-
               Consider deploying <a target="_blank" class="new-window"
-              href="https://github.com/aws-samples/siem-on-amazon-opensearch-service">SIEM
-              on Amazon OpenSearch service</a> or use <a target="_blank"
-              class="new-window"
-              href="https://www.elastic.co/elasticsearch">Elasticsearch</a>
+              href="https://github.com/aws-samples/siem-on-amazon-opensearch-service">SIEM on 
+              Amazon OpenSearch service</a> or use 
+              <a target="_blank" class="new-window" href="https://www.elastic.co/elasticsearch">
+              Elasticsearch</a>
+              <br>
+              <br>
+              AWS Detective and Security Lake can be useful for this purpose as well. Keep in mind that 
+              AWS Detective doesn't build relations between the affected resources and identities. This is a 
+              limitation of the service which makes it less useful for security use cases. AWS Security Lake 
+              allows to get access to the raw data from AWS Detective interface.
+            mitre: undefined
             impact: high
-            effort: high
-            maturity: 2
+            effort: medium
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC04-BP03
         text: Correlate and enrich security alerts
         action_items:
-          - description: Implement Intrusion Detection System
-            implementation: >-
-              Deploy <a target="_blank" class="new-window"
-              href="https://aws.amazon.com/guardduty/">AWS GuardDuty</a> and
-              use  <a target="_blank" class="new-window"
-              href="https://www.elastic.co/docs/reference/security/prebuilt-rules">prebuilt
-              Elasticsearch rules</a> for AWS CloudTrail logs
+          - measure: >- 
+              DETECTION: Implement Intrusion Detection System (IDS)
+            comment: >-
+              Deploy AWS GuardDuty to detect suspicious API calls and network activity.
+            mitre: undefined
+            impact: high
+            effort: low
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: aws
+          - measure: >-
+              DETECTION: Implement Kubernetes Audit Log Analysis
+            comment: >- 
+              In case of AWS EKS usage, AWS GuardDuty has EKS Protection feature. 
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: kubernetes
+          - measure: >- 
+              DETECTION: Implement Kubernetes Runtime Monitoring
+            comment: >-
+              In case of AWS EKS usage, AWS GuardDuty has an agent for this. 
+              Also you can consider open-source solutions like Tetragon or Falco. 
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC04-BP04
         text: Initiate remediation for non-compliant resources
         action_items:
-          - description: Implement Cloud Security Posture Management System
-            implementation: >-
-              Deploy <a target="_blank" class="new-window"
-              href="https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-security-hub-adv.html">AWS
-              SecurityHub</a> or use open-source CSPM tools like <a
-              target="_blank" class="new-window"
-              href="https://prowler.com/">Prowler</a> or <a target="_blank"
-              class="new-window"
-              href="https://github.com/projectdiscovery/nuclei">Nuclei</a>
+          - measure: >-
+              DETECTION: Implement Cloud Security Posture Management System (CSPM)
+            comment: >-  
+              Use AWS SecurityHub to detect non-compliant resources. There is also open-source tools like 
+              Prowler.
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: >-
+              DETECTION: Implement Kubernetes Security Posture Management System (KSPM)
+            comment: >-
+              There is <a target="_blank" class="new-window href="https://github.com/aquasecurity/trivy-operator">
+              trivy-operator</a> to detect non-compliant resources.
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
+          - measure: >-
+              MITIGATION: Don't use privileged containers
+            mitre: undefined
+            impact: high
+            effort: low
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
+          - measure: >- 
+              MITIGATION: Use read-only file system for containers
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
   - name: Infrastructure Protection
     security_controls:
       - code: SEC05-BP01
         text: Create network layers
         action_items:
-          - description: Create network layers
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_protection_create_layers.html
+          - measure: 'MITIGATION: Create VPCs and subnets with/without Internet access for your workloads'
+            mitre: undefined
             impact: high
-            effort: high
-            maturity: 2
+            effort: medium
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC05-BP02
         text: Control traffic flow within your network layers
         action_items:
-          - description: Control traffic flow within your network layers
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_protection_layered.html
+          - measure: >-
+              MITIGATION: Control traffic flow within your network layers. Deploy AWS Network Firewall,  configure AWS
+              Security Groups
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Control traffic flow between the pods. Deploy Istio or Cilium'
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC05-BP03
         text: Implement inspection-based protection
         action_items:
-          - description: Implement inspection-based protection
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_protection_inspection.html
+          - measure: >-
+              DETECTION: Implement Network Intrusion Detection System.  AWS Guarduty can analyze network flow and DNS
+              requests.  Use open-source solutions like Suricata or Snort
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Implement Web Application Firewall. Use AWS WAF or Imperva/CloudFlare'
+            mitre: undefined
+            impact: High
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: aws
       - code: SEC05-BP04
         text: Automate network protection
         action_items:
-          - description: Automate network protection
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_network_auto_protect.html
+          - measure: 'MITIGATION: Automate network protection'
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC06-BP01
         text: Perform vulnerability management
         action_items:
-          - description: Perform vulnerability management
-            implementation: Amazon Inspector, ECR Image Scanning
+          - measure: >-
+              DETECTION: Scan EC2 instances for vulnerabilities. Use AWS Inspector.  It supports both agent and
+              agentless scanning options
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: >-
+              DETECTION: Scan docker images for vulnerabilities. Amazon ECR has a vulnerability scanning feature. <a
+              target="_blank" class="new-window" href="https://trivy.dev/latest/docs/target/container_image/">Trivy</a> 
+              also has docker images scanning capabilities
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC06-BP02
         text: Provision compute from hardened images
         action_items:
-          - description: Provision compute from hardened images
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_hardened_images.html
+          - measure: 'MITIGATION: Provision compute from hardened images. Use AWS managed AMIs'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: >-
+              MITIGATION: Implement distroless images. Consider the tool <a target="_blank" class="new-window"
+              href="https://www.rapidfort.com/">RapidFort</a>
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC06-BP03
         text: Reduce manual management and interactive access
         action_items:
-          - description: Reduce manual management and interactive access
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_reduce_manual_management.html
+          - measure: >-
+              MITIGATION: Reduce manual management and interactive access.  Use AWS Systems Manager or
+              Ansible/Chef/Puppet
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC06-BP04
         text: Validate software integrity
         action_items:
-          - description: Validate software integrity
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_validate_software_integrity.html
+          - measure: 'DETECTION: Validate software integrity'
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC06-BP05
         text: Automate compute protection
         action_items:
-          - description: Automate compute protection
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_compute_auto_protection.html
-            impact: medium
+          - measure: 'MITIGATION: Automate compute protection. Use AWS Tags to manage your resources'
+            mitre: undefined
+            impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
   - name: Data Protection
     security_controls:
       - code: SEC07-BP01
         text: Understand your data classification scheme
         action_items:
-          - description: Understand your data classification scheme
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_identify_data.html
+          - measure: 'DETECTION: Understand your data classification scheme'
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC07-BP02
         text: Apply data protection controls based on data sensitivity
         action_items:
-          - description: Apply data protection controls based on data sensitivity
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_define_protection.html
+          - measure: >-
+              MITIGATION: Apply data protection controls based on data sensitivity.  Use AWS KMS to encrypt sensitive
+              data
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC07-BP03
         text: Automate identification and classification
         action_items:
-          - description: Automate identification and classification
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_auto_classification.html
+          - measure: >-
+              DETECTION: Automate identification and classification.  Use AWS Macie to detect resources with sensitive
+              data
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'DETECTION: Automate sensitive data observability in Kubernetes clusters'
+            mitre: undefined
+            impact: medium
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC07-BP04
         text: Define scalable data lifecycle management
         action_items:
-          - description: Define scalable data lifecycle management
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_data_classification_lifecycle_management.html
+          - measure: 'MITIGATION: Define scalable data lifecycle management.  Use AWS S3 Lifecycle Policies or AWS EBS Snapshots'
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC08-BP01
         text: Implement secure key management
         action_items:
-          - description: Implement secure key management
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_key_mgmt.html
+          - measure: Implement secure key management
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC08-BP02
         text: Enforce encryption at rest
         action_items:
-          - description: Enforce encryption at rest
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_encrypt.html
+          - measure: Enforce encryption at rest
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC08-BP03
         text: Automate data at rest protection
         action_items:
-          - description: Automate data at rest protection
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_automate_protection.html
+          - measure: Automate data at rest protection
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC08-BP04
         text: Enforce access control
         action_items:
-          - description: Enforce access control
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_rest_access_control.html
+          - measure: 'MITIGATION: Enforce access control. Use AWS IAM to manage access to the resources'
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC09-BP01
         text: Implement secure key and certificate management
         action_items:
-          - description: Implement secure key and certificate management
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_transit_key_cert_mgmt.html
+          - measure: 'MITIGATION: Deploy PKI infrastructure. Use AWS Certificate Manager to manage your certificates'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC09-BP02
         text: Enforce encryption in transit
         action_items:
-          - description: Enforce encryption in transit
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_transit_encrypt.html
+          - measure: >-
+              MITIGATION: Enforce encryption in transit. Enforce strict  security policies for your Application Load
+              Balancer
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Enforce encryption in transit inside the Kubernetes cluster.  Deploy Istio or Cilium'
+            mitre: undefined
+            impact: medium
+            effort: high
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC09-BP03
         text: Authenticate network communications
         action_items:
-          - description: Authenticate network communications
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_protect_data_transit_authentication.html
+          - measure: 'MITIGATION: Authenticate network communications. Use AWS IAM to manage access to the resources'
+            mitre: undefined
             impact: medium
             effort: high
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Implement mutual TLS (mTLS) authentication between the services'
+            mitre: undefined
+            impact: medium
+            effort: high
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
   - name: Incident Response
     security_controls:
       - code: SEC10-BP01
         text: Identify key personnel and external resources
         action_items:
-          - description: Identify key personnel and external resources
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_identify_personnel.html
+          - measure: 'DETECTION: Build the SOC team and define its responsibilities and scope'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC10-BP02
         text: Develop incident management plans
         action_items:
-          - description: Develop incident management plans
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_develop_management_plans.html
+          - measure: >-
+              DETECTION: Develop incident management plans.  Use AWS Security Orchestration, Automation, and Response
+              (SOAR)
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC10-BP03
         text: Prepare forensic capabilities
         action_items:
-          - description: Prepare forensic capabilities
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_prepare_forensic.html
+          - measure: 'DETECTION: Review AWS CloudTrail and AWS CloudWatch from the forensic standpoint'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'DETECTION: Review Kubernetes logs from forensic standpoint'
+            mitre: undefined
+            impact: high
+            effort: low
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC10-BP04
         text: Develop and test security incident response playbooks
         action_items:
-          - description: Develop and test security incident response playbooks
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_playbooks.html
+          - measure: 'DETECTION: Develop and test security incident response playbooks'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC10-BP05
         text: Pre-provision access
         action_items:
-          - description: Pre-provision access
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_pre_provision_access.html
+          - measure: 'MITIGATION: Pre-provision access to AWS accounts'
+            mitre: undefined
             impact: high
-            effort: medium
-            maturity: 2
+            effort: low
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'MITIGATION: Pre-provision access to Kubernetes clusters'
+            mitre: undefined
+            impact: high
+            effort: low
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC10-BP06
         text: Pre-deploy tools
         action_items:
-          - description: Pre-deploy tools
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_pre_deploy_tools.html
+          - measure: 'MITIGATION: Pre-deploy tools like Case Management System, Sandbox, etc.'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC10-BP07
         text: Run simulations
         action_items:
-          - description: Run simulations
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_run_game_days.html
+          - measure: 'DETECTION: Run simulations to test the incident response playbooks'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC10-BP08
         text: Post-incident activity
         action_items:
-          - description: Post-incident activity
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_incident_response_establish_incident_framework.html
+          - measure: 'MITIGATION: Implement lessons learned from the post-incident activity'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
   - name: Application Security
     security_controls:
       - code: SEC11-BP01
         text: Train for application security
         action_items:
-          - description: Train for application security
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_train_for_application_security.html
+          - measure: 'DETECTION: Train for application security'
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC11-BP02
         text: Automate testing throughout the development and release lifecycle
         action_items:
-          - description: Automate testing throughout the development and release lifecycle
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_automate_testing_throughout_lifecycle.html
+          - measure: 'DETECTION: Automate testing throughout the development and release lifecycle'
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
+          - measure: 'DETECTION: Implement helm chart security scanning inside the pipeline'
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 1
+            maturity: 2
+            goal: 3
+            tags: kubernetes
       - code: SEC11-BP03
         text: Perform regular penetration testing
         action_items:
-          - description: Perform regular penetration testing
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_perform_regular_penetration_testing.html
+          - measure: 'DETECTION: Perform regular penetration testing'
+            mitre: undefined
             impact: medium
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
-          - description: Implement Bug Bounty program
-            implementation: >-
-              Bug Bounty program will allow you to ensure continuous application
-              security testing by high qualified hackers via specialized
-              platforms
+            tags: aws
+          - measure: 'DETECTION: Implement Bug Bounty program'
+            mitre: undefined
             impact: high
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC11-BP04
         text: Conduct code reviews
         action_items:
-          - description: Conduct code reviews
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_manual_code_reviews.html
+          - measure: 'DETECTION: Conduct code reviews'
+            mitre: undefined
             impact: medium
             effort: high
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC11-BP05
         text: Centralize services for packages and dependencies
         action_items:
-          - description: Centralize services for packages and dependencies
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_centralize_services_for_packages_and_dependencies.html
+          - measure: 'DETECTION: Centralize services for packages and dependencies'
+            mitre: undefined
             impact: medium
-            effort: low
-            maturity: 2
+            effort: medium
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: kubernetes
       - code: SEC11-BP06
         text: Deploy software programmatically
         action_items:
-          - description: Deploy software programmatically
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_deploy_software_programmatically.html
+          - measure: Deploy software programmatically
+            mitre: undefined
             impact: high
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC11-BP07
         text: Regularly assess security properties of the pipelines
         action_items:
-          - description: Regularly assess security properties of the pipelines
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_regularly_assess_security_properties_of_pipelines.html
+          - measure: Regularly assess security properties of the pipelines
+            mitre: undefined
             impact: high
             effort: low
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws
       - code: SEC11-BP08
         text: Build a program that embeds security ownership in workload teams
         action_items:
-          - description: Build a program that embeds security ownership in workload teams
-            implementation: >-
-              https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/sec_appsec_build_program_that_embeds_security_ownership_in_teams.html
+          - measure: Build a program that embeds security ownership in workload teams
+            mitre: undefined
             impact: medium
             effort: medium
-            maturity: 2
             before: 1
+            maturity: 2
             goal: 3
-            comment: ''
+            tags: aws

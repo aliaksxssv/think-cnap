@@ -2,119 +2,1200 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>Threat-centric AWS Security Maturity Dashboard</title>
+  <title>Cloud Native Application Security Maturity Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .chart-wrapper{position:relative;width:100%;height:70vh}
-    a.new-window{color:darkolivegreen;text-decoration:underline}
-
-    #radar{
-      transform:scale(1.15);
-      transform-origin:top center;
-      margin-top:20px;
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 70vh;
+      min-width: 400px;
+    }
+    
+    .chart-wrapper.single-chart {
+      width: 1200px;
+      max-width: 95vw;
+    }
+    
+    a.new-window {
+      color: darkolivegreen;
+      text-decoration: underline;
     }
 
+    #radar {
+      transform: scale(1.15);
+      transform-origin: top center;
+      margin-top: 20px;
+    }
+
+    .loading-spinner {
+      border: 3px solid #374151;
+      border-radius: 50%;
+      border-top: 3px solid #06B6D4;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 500;
+      z-index: 1000;
+      transition: opacity 0.3s ease;
+    }
+
+    .notification.success {
+      background-color: #10B981;
+    }
+
+    .notification.error {
+      background-color: #EF4444;
+    }
+
+    .notification.warning {
+      background-color: #F59E0B;
+    }
+
+    .fade-out {
+      opacity: 0;
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+      position: relative;
+      cursor: help;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 480px;
+      background-color: #1f2937;
+      color: #e5e7eb;
+      text-align: left;
+      border-radius: 6px;
+      padding: 12px;
+      position: fixed;
+      z-index: 9999;
+      bottom: auto;
+      top: auto;
+      left: auto;
+      right: auto;
+      margin: 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+      border: 1px solid #4b5563;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      font-size: 14px;
+      line-height: 1.4;
+      pointer-events: auto;
+    }
+
+    .tooltip .tooltiptext.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Style links and formatting in tooltips */
+    .tooltip .tooltiptext a {
+      color: #60a5fa;
+      text-decoration: underline;
+    }
+
+    .tooltip .tooltiptext a:hover {
+      color: #93c5fd;
+    }
+
+    .tooltip .tooltiptext strong, .tooltip .tooltiptext b {
+      font-weight: 600;
+      color: #f3f4f6;
+    }
+
+    .tooltip .tooltiptext em, .tooltip .tooltiptext i {
+      font-style: italic;
+      color: #d1d5db;
+    }
+
+    .tooltip .tooltiptext code {
+      background-color: #374151;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #fbbf24;
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-6">
-  <h1 class="text-3xl font-mono mb-6 text-cyan-300">Threat-centric AWS Security Maturity Dashboard</h1>
+  <h1 class="text-3xl font-mono mb-6 text-cyan-300">Cloud Native Application Security Maturity Dashboard</h1>
 
   <!-- Open file -->
   <div id="loader" class="mb-6">
-    <button id="openFileBtn" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded">Open data file</button>
+    <button id="openFileBtn" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded flex items-center space-x-2">
+      <span>Open data file</span>
+      <div id="loadingSpinner" class="loading-spinner hidden"></div>
+    </button>
+    <p class="text-gray-400 text-sm mt-2">Select a YAML file containing your security maturity data</p>
   </div>
 
   <!-- Main app -->
   <div id="main" class="hidden">
-    <div id="tabs" class="flex space-x-3 mb-6 overflow-x-auto"></div>
+    <div class="flex justify-between items-center mb-6">
+      <div id="tabs" class="flex space-x-3 overflow-x-auto"></div>
+      <div class="flex space-x-2">
+        <button id="exportBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm">Export</button>
+        <button id="saveBtn" class="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded text-sm flex items-center space-x-1">
+          <span>Save Changes</span>
+          <div id="saveSpinner" class="loading-spinner hidden w-4 h-4"></div>
+        </button>
+      </div>
+    </div>
     <div id="panes"></div>
   </div>
 
 <script>
-let fileHandle, updatedCfg;
+class SecurityMaturityDashboard {
+    constructor() {
+    this.fileHandle = null;
+    this.config = null;
+    this.charts = {};
+    this.selectedTags = ['aws', 'kubernetes'];
+    this.hasUnsavedChanges = false;
 
-// 1) Open and read the YAML
-openFileBtn.addEventListener('click', async () => {
-  [fileHandle] = await window.showOpenFilePicker({
-    types:[{description:'YAML',accept:{'text/yaml':['.yaml','.yml']}}],multiple:false});
-  const text = await (await fileHandle.getFile()).text();
-  try{updatedCfg = jsyaml.load(text);}catch(e){return alert('YAML parse error: '+e.message);}
-  if(updatedCfg.categories && !updatedCfg.security_domains){updatedCfg.security_domains = updatedCfg.categories;delete updatedCfg.categories;}
-  loader.classList.add('hidden');
-  main.classList.remove('hidden');
-  initApp(updatedCfg);
-});
+    // Constants
+    this.IMPACT_MAP = { low: 1, medium: 2, high: 3 };
+    this.EFFORT_MAP = { low: 1, medium: 2, high: 3 };
+    this.MATURITY_LEVELS = ['No adoption', 'Ad-hoc', 'Partial', 'Full'];
+    
+    this.init();
+  }
 
-async function saveChanges(){
-  const yamlText = jsyaml.dump(updatedCfg);
-  const writable = await fileHandle.createWritable();
-  await writable.write(yamlText);
-  await writable.close();
-  alert('✅ Data file was updated');
-}
+  init() {
+    this.bindEvents();
+    this.setupBeforeUnloadWarning();
+  }
 
-function initApp(cfg){
-  const domains = Array.isArray(cfg.security_domains)?cfg.security_domains:[];
-  const tabsEl = document.getElementById('tabs');
-  const panesEl = document.getElementById('panes');
-  tabsEl.innerHTML='';panesEl.innerHTML='';
+  bindEvents() {
+    document.getElementById('openFileBtn').addEventListener('click', () => this.openFile());
+    document.getElementById('saveBtn')?.addEventListener('click', () => this.saveChanges());
+    document.getElementById('exportBtn')?.addEventListener('click', () => this.exportData());
+  }
 
-  const impactMap={low:1,medium:2,high:3}, effortMap={low:1,medium:2,high:3};
-  const weight=ai=>impactMap[ai.impact]/effortMap[ai.effort];
-  const domField=(dom,f)=>{const items=(dom.security_controls||[]).flatMap(c=>c.action_items||[]);const ws=items.map(weight),ss=items.map(ai=>ai[f]*weight(ai)),W=ws.reduce((a,b)=>a+b,0);return W?ss.reduce((a,b)=>a+b,0)/W:0;};
-  const mBefore=d=>domField(d,'before'),mNow=d=>domField(d,'maturity'),mGoal=d=>domField(d,'goal');
-  const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-
-  const tabs=[{name:'Dashboard',slug:'dashboard'},...domains.map(d=>({name:d.name,slug:slug(d.name)}))];
-  let chart;
-  function drawChart(){
-    const ctx=document.getElementById('radar')?.getContext('2d');if(!ctx)return;
-    const labels=domains.map(d=>d.name),before=domains.map(mBefore),now=domains.map(mNow),goal=domains.map(mGoal);
-    if(chart)chart.destroy();
-    chart=new Chart(ctx,{type:'radar',data:{labels,datasets:[{label:'Before',data:before,fill:true,backgroundColor:'rgba(54,162,235,0.2)',borderColor:'rgba(54,162,235,0.8)',borderWidth:2},{label:'Now',data:now,fill:true,backgroundColor:'rgba(255,99,132,0.2)',borderColor:'rgba(255,99,132,0.8)',borderWidth:2},{label:'Goal',data:goal,fill:true,backgroundColor:'rgba(255,205,86,0.2)',borderColor:'rgba(255,205,86,0.8)',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:3,ticks:{stepSize:1,color:'#06B6D4'},grid:{color:'rgba(6,182,212,0.2)'},angleLines:{color:'rgba(6,182,212,0.3)'},pointLabels:{color:'#38BDF8',font:{size:12}}}},plugins:{legend:{position:'bottom',labels:{color:'#22D3EE'}}}}});}
-
-  const dash=document.createElement('div');dash.id='pane-dashboard';dash.innerHTML='<div class="chart-wrapper"><canvas id="radar"></canvas></div>';panesEl.appendChild(dash);
-
-  domains.forEach((dom,di)=>{
-    const slugName=slug(dom.name);const pane=document.createElement('div');pane.id='pane-'+slugName;pane.className='hidden';
-    const nb=mBefore(dom).toFixed(2),nn=mNow(dom).toFixed(2),ng=mGoal(dom).toFixed(2);
-    let html=`<div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 space-y-2 md:space-y-0"><div class="space-x-4 font-semibold"><span id="domain-before-${di}" style="color:rgba(54,162,235,0.8)">Maturity Before: ${nb} / 3</span><span id="domain-now-${di}" style="color:rgba(255,99,132,0.8)">Maturity Now: ${nn} / 3</span><span id="domain-goal-${di}" style="color:rgba(255,205,86,0.8)">Maturity Goal: ${ng} / 3</span></div><button onclick="saveChanges()" class="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded">Save Changes</button></div><table class="table-auto w-full border-collapse mb-8"><thead><tr><th class="border p-2">Action Item</th><th class="border p-2">Implementation</th><th class="border p-2">Comment</th><th class="border p-2">Impact</th><th class="border p-2">Effort</th><th class="border p-2">Before</th><th class="border p-2">Now</th><th class="border p-2">Goal</th></tr></thead><tbody>`;
-
-    (dom.security_controls||[]).forEach((ctrl,ci)=>{
-      html+=`<tr class="bg-gray-800"><td colspan="8" class="border border-gray-600 p-2 font-mono text-cyan-300">${ctrl.code}: ${ctrl.text}</td></tr>`;
-      (ctrl.action_items||[]).forEach((ai,ai_i)=>{
-        ai.before=ai.before??0;ai.maturity=ai.maturity??0;ai.goal=ai.goal??0;ai.comment=ai.comment??'';
-        html+=`<tr><td class="border p-2">${ai.description}</td><td class="border p-2">${ai.implementation}</td><td class="border p-2 w-64"><textarea data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="comment" rows="3" class="bg-gray-800 text-gray-200 p-1 rounded w-full" placeholder="Add comments...">${ai.comment}</textarea></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="impact" class="bg-gray-800 text-gray-200 p-1 rounded">${['low','medium','high'].map(x=>`<option value="${x}"${ai.impact===x?' selected':''}>${x}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="effort" class="bg-gray-800 text-gray-200 p-1 rounded">${['low','medium','high'].map(x=>`<option value="${x}"${ai.effort===x?' selected':''}>${x}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="before" class="bg-gray-800 text-gray-200 p-1 rounded">${[0,1,2,3].map(v=>`<option value="${v}"${ai.before===v?' selected':''}>${['No adoption','Ad-hoc','Partial','Full'][v]}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="maturity" class="bg-gray-800 text-gray-200 p-1 rounded">${[0,1,2,3].map(v=>`<option value="${v}"${ai.maturity===v?' selected':''}>${['No adoption','Ad-hoc','Partial','Full'][v]}</option>`).join('')}</select></td><td class="border p-2"><select data-di="${di}" data-ci="${ci}" data-ai="${ai_i}" data-prop="goal" class="bg-gray-800 text-gray-200 p-1 rounded">${[0,1,2,3].map(v=>`<option value="${v}"${ai.goal===v?' selected':''}>${['No adoption','Ad-hoc','Partial','Full'][v]}</option>`).join('')}</select></td></tr>`;
-      });
+  setupBeforeUnloadWarning() {
+    window.addEventListener('beforeunload', (e) => {
+      if (this.hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
     });
-    html+='</tbody></table>';
-    pane.innerHTML=html;panesEl.appendChild(pane);
-  });
-
-  panesEl.addEventListener('input',handleChange);
-  panesEl.addEventListener('change',handleChange);
-  function handleChange(e){
-    const el=e.target;const {di,ci,ai,prop}=el.dataset;if(di===undefined)return;
-    const item=updatedCfg.security_domains[+di].security_controls[+ci].action_items[+ai];
-    if(prop==='comment'){item.comment=el.value;}else if(['impact','effort'].includes(prop)){item[prop]=el.value;}else{item[prop]=+el.value;}
-    const nb=mBefore(updatedCfg.security_domains[di]).toFixed(2);
-    const nn=mNow(updatedCfg.security_domains[di]).toFixed(2);
-    const ng=mGoal(updatedCfg.security_domains[di]).toFixed(2);
-    document.getElementById(`domain-before-${di}`).textContent=`Maturity Before: ${nb} / 3`;
-    document.getElementById(`domain-now-${di}`).textContent=`Maturity Now: ${nn} / 3`;
-    document.getElementById(`domain-goal-${di}`).textContent=`Maturity Goal: ${ng} / 3`;
-    if(document.getElementById('pane-dashboard')&&!document.getElementById('pane-dashboard').classList.contains('hidden'))drawChart();
   }
 
-  function activate(slugName){
-    tabs.forEach(t=>{const btn=document.getElementById('tab-'+t.slug),pane=document.getElementById('pane-'+t.slug);if(!btn||!pane)return;btn.classList.toggle('border-b-2',t.slug===slugName);btn.classList.toggle('border-cyan-400',t.slug===slugName);btn.classList.toggle('text-cyan-300',t.slug===slugName);pane.classList.toggle('hidden',t.slug!==slugName);});
-    if(slugName==='dashboard')drawChart();
+  showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.classList.add('fade-out');
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
   }
 
-  tabs.forEach((t,i)=>{const btn=document.createElement('button');btn.id='tab-'+t.slug;btn.textContent=t.name;btn.className='px-4 py-2 cursor-pointer hover:text-cyan-400';btn.onclick=()=>activate(t.slug);tabsEl.appendChild(btn);if(i===0)activate(t.slug);});
+  showLoading(elementId) {
+    const spinner = document.getElementById(elementId);
+    if (spinner) {
+      spinner.classList.remove('hidden');
+    }
+  }
+
+  hideLoading(elementId) {
+    const spinner = document.getElementById(elementId);
+    if (spinner) {
+      spinner.classList.add('hidden');
+    }
+  }
+
+  async openFile() {
+    try {
+      this.showLoading('loadingSpinner');
+      
+      // Check if File System Access API is supported
+      if (window.showOpenFilePicker) {
+        // Modern API approach
+        [this.fileHandle] = await window.showOpenFilePicker({
+          types: [{
+            description: 'YAML files',
+            accept: {
+              'text/yaml': ['.yaml', '.yml'],
+              'text/plain': ['.yaml', '.yml']
+            }
+          }],
+          multiple: false
+        });
+
+        const file = await this.fileHandle.getFile();
+        const text = await file.text();
+        this.config = this.parseAndValidateYAML(text);
+      } else {
+        // Fallback to traditional file input
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.yaml,.yml';
+        
+        return new Promise((resolve, reject) => {
+          input.onchange = async (e) => {
+            try {
+              const file = e.target.files[0];
+              if (!file) {
+                reject(new Error('No file selected'));
+                return;
+              }
+              
+              const text = await file.text();
+              this.config = this.parseAndValidateYAML(text);
+              this.fileHandle = null; // No handle in fallback mode
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          };
+          
+          input.onclick = () => {
+            input.oncancel = () => reject(new Error('File selection cancelled'));
+          };
+          
+          input.click();
+        }).then(() => {
+          this.hideLoading('loadingSpinner');
+          document.getElementById('loader').classList.add('hidden');
+          document.getElementById('main').classList.remove('hidden');
+          this.initApp();
+          this.showNotification('File loaded successfully!');
+        });
+      }
+      
+      this.hideLoading('loadingSpinner');
+      document.getElementById('loader').classList.add('hidden');
+      document.getElementById('main').classList.remove('hidden');
+      this.initApp();
+      this.showNotification('File loaded successfully!');
+      
+    } catch (error) {
+      this.hideLoading('loadingSpinner');
+      this.showNotification(`Error loading file: ${error.message}`, 'error');
+      console.error('File loading error:', error);
+    }
+  }
+
+  parseAndValidateYAML(text) {
+    try {
+      const config = jsyaml.load(text);
+      
+      // Handle legacy format
+      if (config.categories && !config.security_domains) {
+        config.security_domains = config.categories;
+        delete config.categories;
+      }
+
+      // Validate structure
+      if (!config.security_domains || !Array.isArray(config.security_domains)) {
+        throw new Error('Invalid YAML structure: missing or invalid security_domains array');
+      }
+
+      // Validate each domain
+      config.security_domains.forEach((domain, index) => {
+        if (!domain.name) {
+          throw new Error(`Security domain at index ${index} is missing a name`);
+        }
+        if (!domain.security_controls) {
+          domain.security_controls = [];
+        }
+      });
+
+      return config;
+    } catch (error) {
+      throw new Error(`YAML parsing failed: ${error.message}`);
+    }
+  }
+
+  async saveChanges() {
+    try {
+      this.showLoading('saveSpinner');
+      
+      if (!this.fileHandle) {
+        // Fallback mode - export file instead
+        this.hideLoading('saveSpinner');
+        this.exportData();
+        this.showNotification('Changes exported as new file (save not supported in this browser)!', 'warning');
+        return;
+      }
+
+      const yamlText = jsyaml.dump(this.config, {
+        indent: 2,
+        lineWidth: 120,
+        noRefs: true
+      });
+      
+      const writable = await this.fileHandle.createWritable();
+      await writable.write(yamlText);
+      await writable.close();
+      
+      this.hasUnsavedChanges = false;
+      this.hideLoading('saveSpinner');
+      this.showNotification('Data file updated successfully!');
+      
+    } catch (error) {
+      this.hideLoading('saveSpinner');
+      this.showNotification(`Error saving file: ${error.message}`, 'error');
+      console.error('Save error:', error);
+    }
+  }
+
+  exportData() {
+    try {
+      const yamlText = jsyaml.dump(this.config, {
+        indent: 2,
+        lineWidth: 120,
+        noRefs: true
+      });
+      
+      const blob = new Blob([yamlText], { type: 'text/yaml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'security-maturity-export.yaml';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      this.showNotification('Data exported successfully!');
+    } catch (error) {
+      this.showNotification(`Export failed: ${error.message}`, 'error');
+    }
+  }
+
+  calculateWeight(actionItem) {
+    const impact = this.IMPACT_MAP[actionItem.impact] || 1;
+    const effort = this.EFFORT_MAP[actionItem.effort] || 1;
+    return impact / effort;
+  }
+
+  calculateDomainField(domain, field, tags = null) {
+    let items = (domain.security_controls || []).flatMap(control => control.action_items || []);
+    
+    // Filter by tags if specified
+    if (tags && tags.length > 0) {
+      items = items.filter(item => {
+        const itemTag = item.tags;
+        return tags.includes(itemTag);
+      });
+    } else if (tags && tags.length === 0) {
+      // No tags selected, no items should be included
+      items = [];
+    }
+    
+    if (items.length === 0) return 0;
+
+    const weights = items.map(item => this.calculateWeight(item));
+    const scores = items.map(item => (item[field] || 0) * this.calculateWeight(item));
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    
+    return totalWeight ? scores.reduce((sum, score) => sum + score, 0) / totalWeight : 0;
+  }
+
+  filterActionItemsByTags(actionItems, tags) {
+    if (!tags || tags.length === 0) return [];
+    const filtered = actionItems.filter(item => {
+      const itemTag = item.tags;
+      return tags.includes(itemTag);
+    });
+    return filtered;
+  }
+
+  updateTagSelection() {
+    const checkboxes = document.querySelectorAll('.tag-filter');
+    this.selectedTags = Array.from(checkboxes)
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
+    
+    // Force refresh all domain panes
+    this.refreshAllPanes();
+    
+    this.updateChartsDisplay();
+    this.drawCharts();
+  }
+
+  refreshAllPanes() {
+    const domains = this.config.security_domains || [];
+    
+    domains.forEach((domain, index) => {
+      const slugName = this.createSlug(domain.name);
+      const oldPane = document.getElementById(`pane-${slugName}`);
+      
+      if (oldPane) {
+        const newPane = this.createDomainPane(domain, index);
+        
+        // Preserve the visibility state
+        const isVisible = !oldPane.classList.contains('hidden');
+        if (isVisible) {
+          newPane.classList.remove('hidden');
+        }
+        
+        if (oldPane.parentNode) {
+          oldPane.parentNode.replaceChild(newPane, oldPane);
+        }
+      }
+    });
+  }
+
+  updateChartsDisplay() {
+    const awsChart = document.getElementById('chart-aws');
+    const kubernetesChart = document.getElementById('chart-kubernetes');
+    const container = document.getElementById('charts-container');
+    
+    const showAws = this.selectedTags.includes('aws');
+    const showKubernetes = this.selectedTags.includes('kubernetes');
+    
+    awsChart.classList.toggle('hidden', !showAws);
+    kubernetesChart.classList.toggle('hidden', !showKubernetes);
+    
+    // Center single chart with larger size using CSS classes
+    if (showAws && !showKubernetes) {
+      container.className = 'flex justify-center';
+      awsChart.classList.add('single-chart');
+      kubernetesChart.classList.remove('single-chart');
+    } else if (!showAws && showKubernetes) {
+      container.className = 'flex justify-center';
+      kubernetesChart.classList.add('single-chart');
+      awsChart.classList.remove('single-chart');
+    } else if (showAws && showKubernetes) {
+      container.className = 'flex justify-center space-x-8';
+      awsChart.classList.remove('single-chart');
+      kubernetesChart.classList.remove('single-chart');
+    }
+    
+    // Trigger chart resize after layout change
+    setTimeout(() => {
+      if (this.charts.aws && showAws) {
+        this.charts.aws.resize();
+      }
+      if (this.charts.kubernetes && showKubernetes) {
+        this.charts.kubernetes.resize();
+      }
+    }, 100);
+  }
+
+  createSlug(text) {
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  drawCharts() {
+    const domains = this.config.security_domains;
+    const labels = domains.map(domain => domain.name);
+
+    // Draw AWS chart if selected
+    if (this.selectedTags.includes('aws')) {
+      this.drawSingleChart('aws', labels, domains, ['aws']);
+    }
+
+    // Draw Kubernetes chart if selected
+    if (this.selectedTags.includes('kubernetes')) {
+      this.drawSingleChart('kubernetes', labels, domains, ['kubernetes']);
+    }
+  }
+
+  drawSingleChart(tag, labels, domains, filterTags) {
+    const ctx = document.getElementById(`radar-${tag}`)?.getContext('2d');
+    if (!ctx) return;
+
+    const beforeData = domains.map(domain => this.calculateDomainField(domain, 'before', filterTags));
+    const nowData = domains.map(domain => this.calculateDomainField(domain, 'maturity', filterTags));
+    const goalData = domains.map(domain => this.calculateDomainField(domain, 'goal', filterTags));
+
+    // Destroy existing chart
+    if (this.charts[tag]) {
+      this.charts[tag].destroy();
+    }
+
+    // Color schemes for different tags - using same colors for both
+    const colorSchemes = {
+      aws: {
+        before: { bg: 'rgba(54, 162, 235, 0.2)', border: 'rgba(54, 162, 235, 0.8)' },
+        now: { bg: 'rgba(255, 99, 132, 0.2)', border: 'rgba(255, 99, 132, 0.8)' },
+        goal: { bg: 'rgba(255, 205, 86, 0.2)', border: 'rgba(255, 205, 86, 0.8)' }
+      },
+      kubernetes: {
+        before: { bg: 'rgba(54, 162, 235, 0.2)', border: 'rgba(54, 162, 235, 0.8)' },
+        now: { bg: 'rgba(255, 99, 132, 0.2)', border: 'rgba(255, 99, 132, 0.8)' },
+        goal: { bg: 'rgba(255, 205, 86, 0.2)', border: 'rgba(255, 205, 86, 0.8)' }
+      }
+    };
+
+    const colors = colorSchemes[tag];
+
+    this.charts[tag] = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Before',
+            data: beforeData,
+            fill: true,
+            backgroundColor: colors.before.bg,
+            borderColor: colors.before.border,
+            borderWidth: 2,
+            pointBackgroundColor: colors.before.border
+          },
+          {
+            label: 'Now',
+            data: nowData,
+            fill: true,
+            backgroundColor: colors.now.bg,
+            borderColor: colors.now.border,
+            borderWidth: 2,
+            pointBackgroundColor: colors.now.border
+          },
+          {
+            label: 'Goal',
+            data: goalData,
+            fill: true,
+            backgroundColor: colors.goal.bg,
+            borderColor: colors.goal.border,
+            borderWidth: 2,
+            pointBackgroundColor: colors.goal.border
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            min: 0,
+            max: 3,
+            ticks: {
+              stepSize: 1,
+              color: '#06B6D4'
+            },
+            grid: {
+              color: 'rgba(6, 182, 212, 0.2)'
+            },
+            angleLines: {
+              color: 'rgba(6, 182, 212, 0.3)'
+            },
+            pointLabels: {
+              color: '#38BDF8',
+              font: {
+                size: 12
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#22D3EE'
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+            titleColor: '#06B6D4',
+            bodyColor: '#E5E7EB'
+          }
+        }
+      }
+    });
+  }
+
+  createOptionElements(options, selectedValue, valueKey = null, useIndices = false) {
+    return options.map((option, index) => {
+      // Use indices when explicitly requested (for maturity levels), otherwise use string values for string arrays
+      const value = valueKey ? option[valueKey] : 
+                   useIndices ? index : 
+                   (typeof option === 'string' ? option : index);
+      const label = typeof option === 'string' ? option : option.label || option;
+      const selected = selectedValue === value ? ' selected' : '';
+      return `<option value="${value}"${selected}>${label}</option>`;
+    }).join('');
+  }
+
+  createDomainPane(domain, domainIndex) {
+    const slugName = this.createSlug(domain.name);
+    const pane = document.createElement('div');
+    pane.id = `pane-${slugName}`;
+    pane.className = 'hidden';
+
+    // Check if both tags are selected to show separate scores
+    const showBothTags = this.selectedTags.includes('aws') && this.selectedTags.includes('kubernetes');
+    const noTagsSelected = this.selectedTags.length === 0;
+    
+    let scoresHtml = '';
+    
+    if (noTagsSelected) {
+      // No tags selected - show message
+      scoresHtml = `
+        <div class="space-x-4 font-semibold">
+          <span class="text-gray-400">No tags selected - please select AWS and/or Kubernetes tags to view maturity scores</span>
+        </div>
+      `;
+    } else if (showBothTags) {
+      // Calculate separate scores for AWS and Kubernetes
+      const awsBeforeScore = this.calculateDomainField(domain, 'before', ['aws']).toFixed(2);
+      const awsNowScore = this.calculateDomainField(domain, 'maturity', ['aws']).toFixed(2);
+      const awsGoalScore = this.calculateDomainField(domain, 'goal', ['aws']).toFixed(2);
+      
+      const k8sBeforeScore = this.calculateDomainField(domain, 'before', ['kubernetes']).toFixed(2);
+      const k8sNowScore = this.calculateDomainField(domain, 'maturity', ['kubernetes']).toFixed(2);
+      const k8sGoalScore = this.calculateDomainField(domain, 'goal', ['kubernetes']).toFixed(2);
+      
+      scoresHtml = `
+        <div class="space-y-3 font-semibold">
+          <div class="space-x-4">
+            <span class="text-cyan-300">AWS:</span>
+            <span id="domain-aws-before-${domainIndex}" style="color:rgba(54,162,235,0.8)">
+              Before: ${awsBeforeScore} / 3
+            </span>
+            <span id="domain-aws-now-${domainIndex}" style="color:rgba(255,99,132,0.8)">
+              Now: ${awsNowScore} / 3
+            </span>
+            <span id="domain-aws-goal-${domainIndex}" style="color:rgba(255,205,86,0.8)">
+              Goal: ${awsGoalScore} / 3
+            </span>
+          </div>
+          <div class="space-x-4">
+            <span class="text-cyan-300">Kubernetes:</span>
+            <span id="domain-k8s-before-${domainIndex}" style="color:rgba(54,162,235,0.8)">
+              Before: ${k8sBeforeScore} / 3
+            </span>
+            <span id="domain-k8s-now-${domainIndex}" style="color:rgba(255,99,132,0.8)">
+              Now: ${k8sNowScore} / 3
+            </span>
+            <span id="domain-k8s-goal-${domainIndex}" style="color:rgba(255,205,86,0.8)">
+              Goal: ${k8sGoalScore} / 3
+            </span>
+          </div>
+        </div>
+      `;
+    } else {
+      // Single tag selected - show combined score
+      const beforeScore = this.calculateDomainField(domain, 'before', this.selectedTags).toFixed(2);
+      const nowScore = this.calculateDomainField(domain, 'maturity', this.selectedTags).toFixed(2);
+      const goalScore = this.calculateDomainField(domain, 'goal', this.selectedTags).toFixed(2);
+      
+      const tagName = this.selectedTags.includes('aws') ? 'AWS' : 
+                     this.selectedTags.includes('kubernetes') ? 'Kubernetes' : 'Combined';
+      
+      scoresHtml = `
+        <div class="space-x-4 font-semibold">
+          <span class="text-cyan-300">${tagName}:</span>
+          <span id="domain-before-${domainIndex}" style="color:rgba(54,162,235,0.8)">
+            Before: ${beforeScore} / 3
+          </span>
+          <span id="domain-now-${domainIndex}" style="color:rgba(255,99,132,0.8)">
+            Now: ${nowScore} / 3
+          </span>
+          <span id="domain-goal-${domainIndex}" style="color:rgba(255,205,86,0.8)">
+            Goal: ${goalScore} / 3
+          </span>
+        </div>
+      `;
+    }
+
+    let html = `
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 space-y-2 md:space-y-0">
+        ${scoresHtml}
+      </div>
+      <div class="overflow-x-auto">
+        <table class="table-fixed w-full border-collapse mb-8">
+          <thead>
+            <tr class="bg-gray-800">
+              <th class="border border-gray-600 p-3 text-left w-[40%]">Security Measure</th>
+              <th class="border border-gray-600 p-3 text-left w-[20%]">MITRE ATT&CK TTP</th>
+              <th class="border border-gray-600 p-3 text-left w-[8%]">Impact</th>
+              <th class="border border-gray-600 p-3 text-left w-[8%]">Effort</th>
+              <th class="border border-gray-600 p-3 text-left w-[8%]">Before</th>
+              <th class="border border-gray-600 p-3 text-left w-[8%]">Now</th>
+              <th class="border border-gray-600 p-3 text-left w-[8%]">Goal</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    (domain.security_controls || []).forEach((control, controlIndex) => {
+      // Filter action items by selected tags
+      const filteredActionItems = this.filterActionItemsByTags(control.action_items || [], this.selectedTags);
+      
+      // Only show control if it has filtered action items
+      if (filteredActionItems.length > 0) {
+        html += `
+          <tr class="bg-gray-800">
+            <td colspan="7" class="border border-gray-600 p-3 font-mono text-cyan-300 break-words">
+              ${this.escapeHtml(control.code || 'N/A')}: ${this.escapeHtml(control.text || 'No description')}
+            </td>
+          </tr>
+        `;
+
+        filteredActionItems.forEach((actionItem, actionIndex) => {
+          // Find original action index for data binding
+          const originalActionIndex = (control.action_items || []).indexOf(actionItem);
+          
+          // Ensure default values
+          actionItem.before = actionItem.before ?? 0;
+          actionItem.maturity = actionItem.maturity ?? 0;
+          actionItem.goal = actionItem.goal ?? 0;
+          actionItem.impact = actionItem.impact ?? 'low';
+          actionItem.effort = actionItem.effort ?? 'low';
+
+          // Display tags
+          const tagsDisplay = actionItem.tags ? actionItem.tags : '';
+
+          // Prepare measure text with optional tooltip
+          let measureContent = actionItem.measure || 'No measure specified';
+          if (actionItem.comment) {
+            measureContent = `
+              <div class="tooltip">
+                <span>${measureContent}</span>
+                <span class="tooltiptext">${this.sanitizeCommentHtml(actionItem.comment)}</span>
+              </div>
+            `;
+          }
+
+          html += `
+            <tr class="hover:bg-gray-800 transition-colors">
+              <td class="border border-gray-600 p-3 break-words">
+                ${measureContent}
+                ${tagsDisplay ? `<div class="text-xs text-cyan-400 mt-1">Tag: ${tagsDisplay}</div>` : ''}
+              </td>
+              <td class="border border-gray-600 p-3 break-words">${this.escapeHtml(actionItem.mitre || 'N/A')}</td>
+              <td class="border border-gray-600 p-3">
+                <select 
+                  data-di="${domainIndex}" 
+                  data-ci="${controlIndex}" 
+                  data-ai="${originalActionIndex}" 
+                  data-prop="impact" 
+                  class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                >
+                  ${this.createOptionElements(['low', 'medium', 'high'], actionItem.impact)}
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select 
+                  data-di="${domainIndex}" 
+                  data-ci="${controlIndex}" 
+                  data-ai="${originalActionIndex}" 
+                  data-prop="effort" 
+                  class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                >
+                  ${this.createOptionElements(['low', 'medium', 'high'], actionItem.effort)}
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select 
+                  data-di="${domainIndex}" 
+                  data-ci="${controlIndex}" 
+                  data-ai="${originalActionIndex}" 
+                  data-prop="before" 
+                  class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                >
+                  ${this.createOptionElements(this.MATURITY_LEVELS, actionItem.before, null, true)}
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select 
+                  data-di="${domainIndex}" 
+                  data-ci="${controlIndex}" 
+                  data-ai="${originalActionIndex}" 
+                  data-prop="maturity" 
+                  class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                >
+                  ${this.createOptionElements(this.MATURITY_LEVELS, actionItem.maturity, null, true)}
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select 
+                  data-di="${domainIndex}" 
+                  data-ci="${controlIndex}" 
+                  data-ai="${originalActionIndex}" 
+                  data-prop="goal" 
+                  class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                >
+                  ${this.createOptionElements(this.MATURITY_LEVELS, actionItem.goal, null, true)}
+                </select>
+              </td>
+            </tr>
+          `;
+        });
+      }
+    });
+
+    html += '</tbody></table></div>';
+    pane.innerHTML = html;
+    
+    // Add tooltip event listeners
+    this.setupTooltips(pane);
+    
+    return pane;
+  }
+
+  setupTooltips(container) {
+    const tooltips = container.querySelectorAll('.tooltip');
+    tooltips.forEach(tooltip => {
+      const tooltipText = tooltip.querySelector('.tooltiptext');
+      if (!tooltipText) return;
+
+      let hideTimeout;
+
+      const showTooltip = () => {
+        // Clear any pending hide timeout
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+
+        const rect = tooltip.getBoundingClientRect();
+        
+        // Calculate position
+        let top = rect.top - tooltipText.offsetHeight - 10;
+        let left = rect.left + (rect.width / 2) - (480 / 2); // 480px is tooltip width
+        
+        // Adjust if tooltip goes off screen
+        if (left < 10) left = 10;
+        if (left + 480 > window.innerWidth - 10) left = window.innerWidth - 490;
+        if (top < 10) top = rect.bottom + 10;
+        
+        tooltipText.style.top = `${top}px`;
+        tooltipText.style.left = `${left}px`;
+        tooltipText.classList.add('show');
+      };
+
+      const hideTooltip = () => {
+        // Add a small delay before hiding to allow moving to tooltip
+        hideTimeout = setTimeout(() => {
+          tooltipText.classList.remove('show');
+        }, 100);
+      };
+
+      const cancelHide = () => {
+        if (hideTimeout) {
+          clearTimeout(hideTimeout);
+          hideTimeout = null;
+        }
+      };
+
+      // Trigger element events
+      tooltip.addEventListener('mouseenter', showTooltip);
+      tooltip.addEventListener('mouseleave', hideTooltip);
+
+      // Tooltip events
+      tooltipText.addEventListener('mouseenter', cancelHide);
+      tooltipText.addEventListener('mouseleave', hideTooltip);
+    });
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  sanitizeCommentHtml(text) {
+    if (!text) return '';
+    
+    // Allow specific HTML tags for formatting
+    const allowedTags = ['br', 'a', 'strong', 'b', 'em', 'i', 'u', 'code', 'span'];
+    const allowedAttributes = ['href', 'target', 'class'];
+    
+    // Create a temporary div to parse HTML
+    const div = document.createElement('div');
+    div.innerHTML = text;
+    
+    // Function to clean nodes recursively
+    const cleanNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent;
+      }
+      
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName.toLowerCase();
+        
+        if (allowedTags.includes(tagName)) {
+          let result = `<${tagName}`;
+          
+          // Add allowed attributes
+          for (let attr of node.attributes) {
+            if (allowedAttributes.includes(attr.name.toLowerCase())) {
+              result += ` ${attr.name}="${attr.value}"`;
+            }
+          }
+          
+          if (tagName === 'br') {
+            result += ' />';
+          } else {
+            result += '>';
+            for (let child of node.childNodes) {
+              result += cleanNode(child);
+            }
+            result += `</${tagName}>`;
+          }
+          
+          return result;
+        } else {
+          // If tag is not allowed, just return its text content
+          return node.textContent;
+        }
+      }
+      
+      return '';
+    };
+    
+    let result = '';
+    for (let child of div.childNodes) {
+      result += cleanNode(child);
+    }
+    
+    return result;
+  }
+
+  handleInputChange(event) {
+    const element = event.target;
+    const { di, ci, ai, prop } = element.dataset;
+    
+    if (di === undefined) return;
+
+    const domainIndex = parseInt(di);
+    const controlIndex = parseInt(ci);
+    const actionIndex = parseInt(ai);
+    
+    const actionItem = this.config.security_domains[domainIndex]
+      .security_controls[controlIndex]
+      .action_items[actionIndex];
+
+    // Update the data
+    if (['impact', 'effort'].includes(prop)) {
+      actionItem[prop] = element.value;
+    } else {
+      actionItem[prop] = parseInt(element.value);
+    }
+
+    this.hasUnsavedChanges = true;
+    this.updateDomainScores(domainIndex);
+    
+    // Update chart if dashboard is visible
+    const dashboardPane = document.getElementById('pane-dashboard');
+    if (dashboardPane && !dashboardPane.classList.contains('hidden')) {
+      this.drawCharts(); // Refresh all charts
+    }
+  }
+
+  updateDomainScores(domainIndex) {
+    const domain = this.config.security_domains[domainIndex];
+    
+    // Check if both tags are selected to show separate scores
+    const showBothTags = this.selectedTags.includes('aws') && this.selectedTags.includes('kubernetes');
+    const noTagsSelected = this.selectedTags.length === 0;
+    
+    if (noTagsSelected) {
+      // No tags selected - update message
+      const messageElement = document.getElementById(`domain-before-${domainIndex}`);
+      if (messageElement) messageElement.textContent = 'No tags selected - please select AWS and/or Kubernetes tags to view maturity scores';
+      return;
+    }
+
+    if (showBothTags) {
+      // Update separate scores for AWS and Kubernetes
+      const awsBefore = document.getElementById(`domain-aws-before-${domainIndex}`);
+      const awsNow = document.getElementById(`domain-aws-now-${domainIndex}`);
+      const awsGoal = document.getElementById(`domain-aws-goal-${domainIndex}`);
+      
+      if (awsBefore) awsBefore.textContent = `Before: ${this.calculateDomainField(domain, 'before', ['aws']).toFixed(2)} / 3`;
+      if (awsNow) awsNow.textContent = `Now: ${this.calculateDomainField(domain, 'maturity', ['aws']).toFixed(2)} / 3`;
+      if (awsGoal) awsGoal.textContent = `Goal: ${this.calculateDomainField(domain, 'goal', ['aws']).toFixed(2)} / 3`;
+
+      const k8sBefore = document.getElementById(`domain-k8s-before-${domainIndex}`);
+      const k8sNow = document.getElementById(`domain-k8s-now-${domainIndex}`);
+      const k8sGoal = document.getElementById(`domain-k8s-goal-${domainIndex}`);
+      
+      if (k8sBefore) k8sBefore.textContent = `Before: ${this.calculateDomainField(domain, 'before', ['kubernetes']).toFixed(2)} / 3`;
+      if (k8sNow) k8sNow.textContent = `Now: ${this.calculateDomainField(domain, 'maturity', ['kubernetes']).toFixed(2)} / 3`;
+      if (k8sGoal) k8sGoal.textContent = `Goal: ${this.calculateDomainField(domain, 'goal', ['kubernetes']).toFixed(2)} / 3`;
+    } else {
+      // Single tag selected - update combined score
+      const beforeScore = this.calculateDomainField(domain, 'before', this.selectedTags).toFixed(2);
+      const nowScore = this.calculateDomainField(domain, 'maturity', this.selectedTags).toFixed(2);
+      const goalScore = this.calculateDomainField(domain, 'goal', this.selectedTags).toFixed(2);
+
+      const beforeElement = document.getElementById(`domain-before-${domainIndex}`);
+      const nowElement = document.getElementById(`domain-now-${domainIndex}`);
+      const goalElement = document.getElementById(`domain-goal-${domainIndex}`);
+
+      if (beforeElement) beforeElement.textContent = `Before: ${beforeScore} / 3`;
+      if (nowElement) nowElement.textContent = `Now: ${nowScore} / 3`;
+      if (goalElement) goalElement.textContent = `Goal: ${goalScore} / 3`;
+    }
+  }
+
+  refreshCurrentPane() {
+    // Get currently active tab
+    const activeTab = document.querySelector('[id^="tab-"].border-b-2');
+    if (!activeTab) return;
+    
+    const tabId = activeTab.id;
+    const slugName = tabId.replace('tab-', '');
+    
+    if (slugName === 'dashboard') {
+      // Dashboard is already refreshed by drawCharts
+      return;
+    }
+    
+    // Find domain and recreate its pane
+    const domains = this.config.security_domains || [];
+    const domainIndex = domains.findIndex(domain => this.createSlug(domain.name) === slugName);
+    
+    if (domainIndex !== -1) {
+      const domain = domains[domainIndex];
+      const oldPane = document.getElementById(`pane-${slugName}`);
+      const newPane = this.createDomainPane(domain, domainIndex);
+      
+      if (oldPane && oldPane.parentNode) {
+        oldPane.parentNode.replaceChild(newPane, oldPane);
+        newPane.classList.remove('hidden'); // Keep it visible if it was active
+      }
+    }
+  }
+
+  activateTab(slugName) {
+    const tabs = document.querySelectorAll('[id^="tab-"]');
+    const panes = document.querySelectorAll('[id^="pane-"]');
+
+    tabs.forEach(tab => {
+      const isActive = tab.id === `tab-${slugName}`;
+      tab.classList.toggle('border-b-2', isActive);
+      tab.classList.toggle('border-cyan-400', isActive);
+      tab.classList.toggle('text-cyan-300', isActive);
+      tab.classList.toggle('text-gray-400', !isActive);
+    });
+
+    panes.forEach(pane => {
+      const isActive = pane.id === `pane-${slugName}`;
+      pane.classList.toggle('hidden', !isActive);
+    });
+
+    if (slugName === 'dashboard') {
+      // Small delay to ensure the canvas is visible
+      setTimeout(() => this.drawCharts(), 100);
+    }
+  }
+
+  initApp() {
+    const domains = this.config.security_domains || [];
+    const tabsElement = document.getElementById('tabs');
+    const panesElement = document.getElementById('panes');
+    
+    // Clear existing content
+    tabsElement.innerHTML = '';
+    panesElement.innerHTML = '';
+
+    // Create dashboard pane
+    const dashboardPane = document.createElement('div');
+    dashboardPane.id = 'pane-dashboard';
+    dashboardPane.innerHTML = `
+      <div class="mb-6">
+        <!-- Tag Selection -->
+        <div class="mb-6 p-4 bg-gray-800 rounded-lg">
+          <p class="text-cyan-300 mb-3 font-semibold">Select Tags to Display:</p>
+          <div class="flex space-x-6">
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" id="tag-aws" class="tag-filter" value="aws" checked>
+              <span class="text-gray-200">AWS</span>
+            </label>
+            <label class="flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" id="tag-kubernetes" class="tag-filter" value="kubernetes" checked>
+              <span class="text-gray-200">Kubernetes</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Charts Container -->
+        <div id="charts-container" class="flex justify-center space-x-8">
+          <div id="chart-aws" class="chart-wrapper hidden">
+            <h3 class="text-lg font-semibold mb-2 text-center text-cyan-300">AWS</h3>
+            <canvas id="radar-aws"></canvas>
+          </div>
+          <div id="chart-kubernetes" class="chart-wrapper hidden">
+            <h3 class="text-lg font-semibold mb-2 text-center text-cyan-300">Kubernetes</h3>
+            <canvas id="radar-kubernetes"></canvas>
+          </div>
+        </div>
+      </div>
+    `;
+    panesElement.appendChild(dashboardPane);
+
+    // Create domain panes
+    domains.forEach((domain, index) => {
+      const pane = this.createDomainPane(domain, index);
+      panesElement.appendChild(pane);
+    });
+
+    // Set up event delegation for input changes
+    panesElement.addEventListener('input', (e) => this.handleInputChange(e));
+    panesElement.addEventListener('change', (e) => this.handleInputChange(e));
+
+    // Set up tag filter event listeners
+    document.addEventListener('change', (e) => {
+      if (e.target.classList.contains('tag-filter')) {
+        this.updateTagSelection();
+      }
+    });
+
+    // Create tabs
+    const tabs = [
+      { name: 'Dashboard', slug: 'dashboard' },
+      ...domains.map(domain => ({
+        name: domain.name,
+        slug: this.createSlug(domain.name)
+      }))
+    ];
+
+    tabs.forEach((tab, index) => {
+      const button = document.createElement('button');
+      button.id = `tab-${tab.slug}`;
+      button.textContent = tab.name;
+      button.className = 'px-4 py-2 cursor-pointer hover:text-cyan-400 transition-colors whitespace-nowrap';
+      button.onclick = () => this.activateTab(tab.slug);
+      tabsElement.appendChild(button);
+
+      // Activate first tab (Dashboard)
+      if (index === 0) {
+        this.activateTab(tab.slug);
+      }
+    });
+
+    // Initialize charts display and draw initial charts
+    setTimeout(() => {
+      this.updateChartsDisplay();
+      this.drawCharts();
+    }, 100);
+  }
 }
+
+// Initialize the application
+const dashboard = new SecurityMaturityDashboard();
 </script>
 
 </body>
