@@ -23,9 +23,9 @@ Assign a weight to each security control by rating both its **Impact** and **Eff
 
 ### Maturity Levels
 - **0**: Not Implemented
-- **1**: Basic Implementation
-- **2**: Intermediate Implementation  
-- **3**: Advanced Implementation
+- **1**: Ad-hoc
+- **2**: Partial Adoption  
+- **3**: Full Adoption
 
 <img src="assessment.png" alt="Assessment" width="750"/>
 
