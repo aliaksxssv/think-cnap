@@ -13,9 +13,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'MITIGATION: Implement AWS accounts separation'
             comment: >-
@@ -24,18 +24,18 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'MITIGATION: Automate the process of Kubernetes cluster provisioning and deprovisioning'
             comment: Use AWS Terraform modules to provision and deprovision Kubernetes clusters
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
           - measure: 'MITIGATION: Implement kubernetes workloads separation'
             comment: >-
@@ -44,9 +44,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC01-BP02
         text: Secure account root user and properties
@@ -58,9 +58,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'DETECTION: Implement root user activity monitoring. '
             comment: >-
@@ -69,9 +69,9 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC01-BP03
         text: Identify and validate control objectives
@@ -86,9 +86,9 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC01-BP04
         text: Stay up to date with security threats and recommendations
@@ -98,9 +98,9 @@ security_domains:
             mitre: DefenseEvasion:ImpairDefenses/DowngradeAttack
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC01-BP05
         text: Reduce security management scope
@@ -112,9 +112,9 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'MITIGATION: Use AWS EKS to delegate control plane management to the cloud provider'
             comment: >-
@@ -123,9 +123,9 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC01-BP06
         text: Automate deployment of standard security controls
@@ -138,9 +138,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC01-BP07
         text: Identify threats and prioritize mitigations using a threat model
@@ -154,9 +154,9 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC01-BP08
         text: Evaluate and implement new security services and features regularly
@@ -171,350 +171,443 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
   - name: Identity & Access Management
     security_controls:
       - code: SEC02-BP01
         text: Use strong sign-in mechanisms
         action_items:
-          - measure: Setup AWS Password Policy and enforce MFA
+          - measure: >-
+              MITIGATION: Configure AWS Password Policy and MFA
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC02-BP02
         text: Use temporary credentials
         action_items:
           - measure: >-
-              MITIGATION: Use IAM roles for you services and third-party integrations to grant access to the AWS
-              resources. Don't use IMDS v1
+              MITIGATION: Use AWS IAM roles 
+            comment: >-
+              Avoid using IAM access and secret keys. Use AWS IAM roles for you services and third-party integrations to grant access to the AWS resources.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'MITIGATION: Enforce IMDS v2'
+          - measure: >- 
+              MITIGATION: Enforce IMDS v2
+            comment: >-
+              IMDS v2 is more secure than IMDS v1. Use AWS Declarative Policy to enforce IMDS v2.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC02-BP03
         text: Store and use secrets securely
         action_items:
-          - measure: Use secrets management services
+          - measure: >- 
+              MITIGATION: Use secrets management services
+            comment: >-
+              Use AWS Secrets Manager to store and use secrets securely. Consider Hashicorp Vault as well.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC02-BP04
         text: Rely on a centralized identity provider
         action_items:
-          - measure: Delegate Identity Management to the Identity Provider
+          - measure: >-
+              MITIGATION: Delegate Identity Management to the Identity Provider
+            comment: >-
+              Consider using centralized Identity Provider, enable SCIM. For example, AWS IAM Identity Center and IdP like Okta.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC02-BP05
         text: Audit and rotate credentials periodically
         action_items:
           - measure: >-
-              DETECTION: Detect unused credentials. AWS IAM Access Analyzer can detect credentials based on inactivity
-              period and generate security finding in AWS SecurityHub
+              DETECTION: Detect unused credentials. 
+            comment: >-
+              Conisder AWS IAM Access Analyzer to detect credentials based on inactivity period and generate security finding in AWS SecurityHub
             mitre: InitialAccess:ValidAccounts/CloudAccounts
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: Rotate credentials regularly
-            mitre: Automate the process of credentials rotation
+          - measure: >-
+              MITIGATION: Rotate credentials regularly
+            comment: >-
+              Automate the process of credentials rotation.
+            mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC02-BP06
         text: Employ user groups and attributes
         action_items:
-          - measure: Use groups and attributes to manage identities and simplify permissions management
-            mitre: Consider using centralized Identity Provider, enable SCIM
+          - measure: >-
+              MITIGATION: Use groups and attributes to manage identities 
+            comment: >-
+              Use departments, teams, projects, etc. to manage identities and simplify permissions management.
+            mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC03-BP01
         text: Define access requirements
         action_items:
-          - measure: Define access requirements
+          - measure: >-
+              MITIGATION: Implement Role Based Access Control (RBAC) in AWS
+            comment: >-
+              Consider AWS IAM roles and policies to manage access to the AWS resources.
             mitre: undefined
-            impact: medium
+            impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
+          - measure: >-
+              MITIGATION: Implement Role Based Access Control (RBAC) in Kubernetes
+            comment: >-
+              Consider Kubernetes Roles and RoleBindings to manage access to the Kubernetes resources.
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 0
+            maturity: 0
+            goal: 0
+            tags: kubernetes
       - code: SEC03-BP02
         text: Grant least privilege access
         action_items:
           - measure: >-
-              MITIGATION: Don't try to chase the tail. Good enough is good enough. Find optimal balance between security
-              and usability
+              MITIGATION: Don't try to chase the tail
+            comment: >-
+              Find the balance between security and usability.
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: Use Roles and RoleBindings to manage access to the resources
-            mitre: undefined
-            impact: medium
-            effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
-            tags: kubernetes
       - code: SEC03-BP03
         text: Establish emergency access process
         action_items:
-          - measure: Establish emergency access process
+          - measure: >-
+              MITIGATION: Establish emergency access process
+            comment: >-
+              Implement emergency access for the root user. Split the password / MFA between security team and infra team.
             mitre: undefined
             impact: medium
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC03-BP04
         text: Reduce permissions continuously
         action_items:
-          - measure: Reduce permissions continuously
+          - measure: >-
+              MITIGATION: Reduce permissions continuously
+            comment: >-
+              Use AWS IAM Access Analyzer to detect unused permissions.
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
+          - measure: >-
+              MITIGATION: Reduce container privileges 
+            comment: >-
+              Drop all capabilities and set only those which are needed. Don't use privileged containers.
+            mitre: undefined
+            impact: high
+            effort: low
+            before: 0
+            maturity: 0
+            goal: 0
+            tags: kubernetes
       - code: SEC03-BP05
         text: Define permission guardrails for your organization
         action_items:
-          - measure: Define permission guardrails for your organization
+          - measure: >-
+              MITIGATION: Define permission guardrails for your organization
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC03-BP06
         text: Manage access based on lifecycle
         action_items:
-          - measure: Manage access based on lifecycle
+          - measure: >-
+              MITIGATION: Manage access based on lifecycle
+            comment: >-
+              Remove access to the resources after they are no longer needed: user termination, project completion, etc.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC03-BP07
         text: Analyze public and cross-account access
         action_items:
           - measure: >-
+              MITIGATION: Analyze public and cross-account access
+            comment: >-
               Deploy AWS IAM Access Analyzer and configure external access analyzer. Used delegated administrator AWS
               Account. This will allow you to detect public resources and cross-account access outside the trusted zone
               (your AWS Account or AWS Organization)
             mitre: Persistance:Account Manipulation/Additional Cloud Roles
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC03-BP08
         text: Share resources securely within your organization
         action_items:
-          - measure: Share resources securely within your organization
+          - measure: >-
+              MITIGATION: Share resources securely within your organization
+            comment: >-
+              Add conditional access to the AWS resources. For example, allow access only from your AWS Organization. Read the
+              <a target="_blank" class="new-window" href="https://aws.amazon.com/blogs/security/how-to-control-access-to-aws-resources-based-on-aws-account-ou-or-organization/">article</a> to learn more.
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC03-BP09
-        text: EShare resources securely with a third party
+        text: Share resources securely with a third party
         action_items:
-          - measure: Share resources securely with a third party
+          - measure: >-
+              MITIGATION: Share resources securely with a third party
+            comment: >-
+              Use AWS IAM External ID to share resources securely with a third party.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
   - name: Detection
     security_controls:
       - code: SEC04-BP01
         text: Configure AWS logging
         action_items:
-          - measure: 'DETECTION: Configure AWS CloudTrail service'
+          - measure: >-
+              DETECTION: Configure AWS CloudTrail service
             comment: >-
-              Configure AWS CloudTrail to get management and data events. Create multi-region trail and apply it to your
-              AWS Organization. Export AWS CloudTrail logs to S3 bucket.
+              Configure AWS CloudTrail to get management and data events. Create multi-region
+              trail and apply it to your AWS Organization. Export AWS CloudTrail logs to S3 bucket.
             mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'DETECTION: Configure Kubernetes audit logs'
             comment: >-
-              Configure Kubernetes audit policy to catch API calls. In case of AWS EKS, audit logs  are stored in AWS
-              CloudWatch
+              Configure Kubernetes audit policy to catch API calls. In case of AWS EKS, audit logs 
+              are stored in AWS CloudWatch
             mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
-          - measure: 'MITIGATION: Protect the AWS logs'
+          - measure: >-
+              MITIGATION: Protect the AWS logs
             comment: >-
-              Enable AWS SSE-KMS encryption for AWS CloudTrail logs and log files validation. <br> <br> Configure SCP
-              Policy to prevent the modification of AWS CloudTrail logging configuration.
+              Enable AWS SSE-KMS encryption for AWS CloudTrail logs and log files validation.
+              <br>
+              <br>
+              Configure SCP Policy to prevent the modification of AWS CloudTrail logging configuration.
             mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: medium
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC04-BP02
         text: Capture logs, findings, and metrics in standardized locations
         action_items:
-          - measure: 'DETECTION: Implement Security Information & Event Management platform (SIEM)'
+          - measure: >-
+              DETECTION: Implement Security Information & Event Management platform (SIEM)
             comment: >-
               Consider deploying <a target="_blank" class="new-window"
-              href="https://github.com/aws-samples/siem-on-amazon-opensearch-service">SIEM on  Amazon OpenSearch
-              service</a> or use  <a target="_blank" class="new-window" href="https://www.elastic.co/elasticsearch">
-              Elasticsearch</a> <br> <br> AWS Detective and Security Lake can be useful for this purpose as well. Keep
-              in mind that  AWS Detective doesn't build relations between the affected resources and identities. This is
-              a  limitation of the service which makes it less useful for security use cases. AWS Security Lake  allows
-              to get access to the raw data from AWS Detective interface.
+              href="https://github.com/aws-samples/siem-on-amazon-opensearch-service">SIEM on 
+              Amazon OpenSearch service</a> or use 
+              <a target="_blank" class="new-window" href="https://www.elastic.co/elasticsearch">
+              Elasticsearch</a>
+              <br>
+              <br>
+              AWS Detective and Security Lake can be useful for this purpose as well. Keep in mind that 
+              AWS Detective doesn't build relations between the affected resources and identities. This is a 
+              limitation of the service which makes it less useful for security use cases. AWS Security Lake 
+              allows to get access to the raw data from AWS Detective interface.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC04-BP03
         text: Correlate and enrich security alerts
         action_items:
-          - measure: 'DETECTION: Implement Intrusion Detection System (IDS)'
-            comment: Deploy AWS GuardDuty to detect suspicious API calls and network activity.
+          - measure: >- 
+              DETECTION: Implement Intrusion Detection System (IDS)
+            comment: >-
+              Deploy AWS GuardDuty to detect suspicious API calls and network activity.
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'DETECTION: Implement Kubernetes Audit Log Analysis'
-            comment: 'In case of AWS EKS usage, AWS GuardDuty has EKS Protection feature. '
+          - measure: >-
+              DETECTION: Implement Kubernetes Audit Log Analysis
+            comment: >- 
+              In case of AWS EKS usage, AWS GuardDuty has EKS Protection feature. 
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
-          - measure: 'DETECTION: Implement Kubernetes Runtime Monitoring'
+          - measure: >- 
+              DETECTION: Implement Kubernetes Runtime Monitoring
             comment: >-
-              In case of AWS EKS usage, AWS GuardDuty has an agent for this.  Also you can consider open-source
-              solutions like Tetragon or Falco. 
+              In case of AWS EKS usage, AWS GuardDuty has an agent for this. 
+              Also you can consider open-source solutions like Tetragon or Falco. 
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC04-BP04
         text: Initiate remediation for non-compliant resources
         action_items:
-          - measure: 'DETECTION: Implement Cloud Security Posture Management System (CSPM)'
-            comment: Use AWS SecurityHub to detect non-compliant resources. There is also open-source tools like  Prowler.
+          - measure: >-
+              DETECTION: Implement Cloud Security Posture Management System (CSPM)
+            comment: >-  
+              Use AWS SecurityHub to detect non-compliant resources. There is also open-source tools like 
+              Prowler.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'DETECTION: Implement Kubernetes Security Posture Management System (KSPM)'
+          - measure: >-
+              MITIGATION: Implement IaC security scanning
+            comment: >-  
+              Consider Trivy/Checkov/Kics to scan your IaC code for misconfigurations as part of the CI pipeline.
+              <br>
+              <br>
+              Note: Checkov doesn't provide information about the severity of the misconfiguration. In case of Terraform modules usage,
+              the better scan quality can be achived using Terrform plan output scanning option. Trivy supports this.
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 0
+            maturity: 0
+            goal: 0
+            tags: aws
+          - measure: >-
+              DETECTION: Implement Kubernetes Security Posture Management System (KSPM)
             comment: >-
               There is <a target="_blank" class="new-window href="https://github.com/aquasecurity/trivy-operator">
               trivy-operator</a> to detect non-compliant resources.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
-          - measure: 'MITIGATION: Don''t use privileged containers'
-            mitre: undefined
-            impact: high
-            effort: low
-            before: 1
-            maturity: 2
-            goal: 3
-            tags: kubernetes
-          - measure: 'MITIGATION: Use read-only file system for containers'
+          - measure: >-
+              MITIGATION: Implement dynamic admission controller in a Kubernetes cluster
+            comment: >-
+              Consider Kyverno or OPA Gatekeeper to prevent insecure changes and inline hardening.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
+            tags: kubernetes
+          - measure: >-
+              DETECTION: Implement helm chart security scanning into the CI pipeline
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
   - name: Infrastructure Protection
     security_controls:
       - code: SEC05-BP01
         text: Create network layers
         action_items:
-          - measure: 'MITIGATION: Create VPCs and subnets with/without Internet access for your workloads'
+          - measure: >-
+              MITIGATION: Create VPCs and subnets with/without Internet access for your workloads
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC05-BP02
         text: Control traffic flow within your network layers
@@ -525,62 +618,72 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'MITIGATION: Control traffic flow between the pods. Deploy Istio or Cilium'
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC05-BP03
         text: Implement inspection-based protection
         action_items:
           - measure: >-
-              DETECTION: Implement Network Intrusion Detection System.  AWS Guarduty can analyze network flow and DNS
-              requests.  Use open-source solutions like Suricata or Snort
+              DETECTION: Implement Network Intrusion Detection System
+            comment: >-
+              AWS Guarduty can analyze network flow and DNS requests. Consider open-source solutions like Suricata or Snort
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'MITIGATION: Implement Web Application Firewall. Use AWS WAF or Imperva/CloudFlare'
+          - measure: >-
+                MITIGATION: Implement Web Application Firewall
+            comment: >-
+              Use AWS WAF or Imperva/CloudFlare.
             mitre: undefined
-            impact: High
+            impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC05-BP04
         text: Automate network protection
         action_items:
-          - measure: 'MITIGATION: Automate network protection'
+          - measure: >-
+              MITIGATION: Automate network protection
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC06-BP01
         text: Perform vulnerability management
         action_items:
           - measure: >-
-              DETECTION: Scan EC2 instances for vulnerabilities. Use AWS Inspector.  It supports both agent and
-              agentless scanning options
+              DETECTION: Scan EC2 instances for vulnerabilities. 
+            comment: >-
+              Use AWS Inspector. It supports both agent and agentless scanning options. 
+              <br>
+              <br>
+              Consider open-source tool like Wazuh Agent. Rely on EPSS, environment (prod, staging, dev, etc.) and host exposure 
+              (internal, internet-facing) to get right prioritization of the findings.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: >-
               DETECTION: Scan docker images for vulnerabilities. Amazon ECR has a vulnerability scanning feature. <a
@@ -589,9 +692,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC06-BP02
         text: Provision compute from hardened images
@@ -600,9 +703,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: >-
               MITIGATION: Implement distroless images. Consider the tool <a target="_blank" class="new-window"
@@ -610,9 +713,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC06-BP03
         text: Reduce manual management and interactive access
@@ -623,21 +726,38 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC06-BP04
         text: Validate software integrity
         action_items:
-          - measure: 'DETECTION: Validate software integrity'
+          - measure: >-
+              MITIGATION:: Validate software integrity on EC2 instances
+            comment: >-
+              Consider osquery to validate software integrity or Wazuh File Integrity Monitoring (FIM).
+              <br>
+              <br>
+              EBPF-based FIM can be used as well. For example, Falco or Tetragon can be used to detect suspicious file changes.
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
+          - measure: >-
+              MITIGATION:: Validate software integrity on Kubernetes clusters
+            comment: >-
+              Consider AWS Signer to validate software integrity. It can be used to validate the integrity of the container images.
+            mitre: undefined
+            impact: medium
+            effort: medium
+            before: 0
+            maturity: 0
+            goal: 0
+            tags: kubernetes
       - code: SEC06-BP05
         text: Automate compute protection
         action_items:
@@ -645,9 +765,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
   - name: Data Protection
     security_controls:
@@ -658,9 +778,9 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC07-BP02
         text: Apply data protection controls based on data sensitivity
@@ -671,9 +791,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC07-BP03
         text: Automate identification and classification
@@ -684,29 +804,43 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'DETECTION: Automate sensitive data observability in Kubernetes clusters'
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC07-BP04
         text: Define scalable data lifecycle management
         action_items:
-          - measure: 'MITIGATION: Define scalable data lifecycle management.  Use AWS S3 Lifecycle Policies or AWS EBS Snapshots'
+          - measure: >-
+              MITIGATION: Define data retention policy
+            comment: >-
+              Use AWS S3 Lifecycle Policies or AWS EBS Snapshots.
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
+          - measure: >- 
+              MITIGATION: Don't store any sensitive data inside the container
+            comment: >-
+              Consider read-only file system for containers. This is a good practice to reduce the risk of data leakage.
+            mitre: undefined
+            impact: high
+            effort: medium
+            before: 0
+            maturity: 0
+            goal: 0
+            tags: kubernetes
       - code: SEC08-BP01
         text: Implement secure key management
         action_items:
@@ -714,9 +848,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC08-BP02
         text: Enforce encryption at rest
@@ -725,9 +859,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC08-BP03
         text: Automate data at rest protection
@@ -736,9 +870,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC08-BP04
         text: Enforce access control
@@ -747,9 +881,9 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC09-BP01
         text: Implement secure key and certificate management
@@ -758,9 +892,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC09-BP02
         text: Enforce encryption in transit
@@ -771,17 +905,17 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
           - measure: 'MITIGATION: Enforce encryption in transit inside the Kubernetes cluster.  Deploy Istio or Cilium'
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC09-BP03
         text: Authenticate network communications
@@ -790,30 +924,32 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'MITIGATION: Implement mutual TLS (mTLS) authentication between the services'
+          - measure: >-
+              MITIGATION: Implement mutual TLS (mTLS) authentication between the services
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
   - name: Incident Response
     security_controls:
       - code: SEC10-BP01
         text: Identify key personnel and external resources
         action_items:
-          - measure: 'DETECTION: Build the SOC team and define its responsibilities and scope'
+          - measure: >-
+              DETECTION: Build the SOC team and define its responsibilities and scope
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC10-BP02
         text: Develop incident management plans
@@ -824,165 +960,171 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC10-BP03
         text: Prepare forensic capabilities
         action_items:
-          - measure: 'DETECTION: Review AWS CloudTrail and AWS CloudWatch from the forensic standpoint'
+          - measure: >-
+              DETECTION: Review AWS CloudTrail and AWS CloudWatch from the forensic standpoint
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'DETECTION: Review Kubernetes logs from forensic standpoint'
+          - measure: >-
+              DETECTION: Review Kubernetes logs from the forensic standpoint
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC10-BP04
         text: Develop and test security incident response playbooks
         action_items:
-          - measure: 'DETECTION: Develop and test security incident response playbooks'
+          - measure: >-
+              DETECTION: Develop and test security incident response playbooks
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC10-BP05
         text: Pre-provision access
         action_items:
-          - measure: 'MITIGATION: Pre-provision access to AWS accounts'
+          - measure: >-
+              MITIGATION: Pre-provision access to AWS accounts
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'MITIGATION: Pre-provision access to Kubernetes clusters'
+          - measure: >-
+              MITIGATION: Pre-provision access to Kubernetes clusters
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: kubernetes
       - code: SEC10-BP06
         text: Pre-deploy tools
         action_items:
-          - measure: 'MITIGATION: Pre-deploy tools like Case Management System, Sandbox, etc.'
+          - measure: >-
+              MITIGATION: Pre-deploy tools like Case Management System, Sandbox, etc.
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC10-BP07
         text: Run simulations
         action_items:
-          - measure: 'DETECTION: Run simulations to test the incident response playbooks'
+          - measure: >-
+              DETECTION: Run simulations to test the incident response playbooks
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC10-BP08
         text: Post-incident activity
         action_items:
-          - measure: 'MITIGATION: Implement lessons learned from the post-incident activity'
+          - measure: >-
+              MITIGATION: Implement lessons learned from the post-incident activity
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
   - name: Application Security
     security_controls:
       - code: SEC11-BP01
         text: Train for application security
         action_items:
-          - measure: 'DETECTION: Train for application security'
+          - measure: >-
+              MITIGATION: Train Developer and QA teams for application security
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC11-BP02
         text: Automate testing throughout the development and release lifecycle
         action_items:
-          - measure: 'DETECTION: Automate testing throughout the development and release lifecycle'
+          - measure: >-
+              DETECTION: Automate testing throughout the development and release lifecycle
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'DETECTION: Implement helm chart security scanning inside the pipeline'
-            mitre: undefined
-            impact: high
-            effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
-            tags: kubernetes
       - code: SEC11-BP03
         text: Perform regular penetration testing
         action_items:
-          - measure: 'DETECTION: Perform regular penetration testing'
+          - measure: >-
+              DETECTION: Perform regular penetration testing
             mitre: undefined
             impact: medium
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
-          - measure: 'DETECTION: Implement Bug Bounty program'
+          - measure: >-
+              DETECTION: Implement Bug Bounty program
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC11-BP04
         text: Conduct code reviews
         action_items:
-          - measure: 'DETECTION: Conduct code reviews'
+          - measure: >-
+              DETECTION: Conduct code reviews
             mitre: undefined
             impact: medium
             effort: high
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC11-BP05
         text: Centralize services for packages and dependencies
         action_items:
-          - measure: 'DETECTION: Centralize services for packages and dependencies'
+          - measure: >-
+              MITIGATION: Centralize services for packages and dependencies
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
-            tags: kubernetes
+            before: 0
+            maturity: 0
+            goal: 0
+            tags: aws
       - code: SEC11-BP06
         text: Deploy software programmatically
         action_items:
@@ -990,9 +1132,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC11-BP07
         text: Regularly assess security properties of the pipelines
@@ -1001,9 +1143,9 @@ security_domains:
             mitre: undefined
             impact: high
             effort: low
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
       - code: SEC11-BP08
         text: Build a program that embeds security ownership in workload teams
@@ -1012,7 +1154,7 @@ security_domains:
             mitre: undefined
             impact: medium
             effort: medium
-            before: 1
-            maturity: 2
-            goal: 3
+            before: 0
+            maturity: 0
+            goal: 0
             tags: aws
