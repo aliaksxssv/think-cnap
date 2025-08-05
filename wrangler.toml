@@ -1,0 +1,5 @@
+name              = "think-cnap"          # must match Pages project name
+compatibility_date = "2025-08-05"         # any date ≤ today
+
+[assets]
+directory = "./"                          # serve index.html + data.yaml
