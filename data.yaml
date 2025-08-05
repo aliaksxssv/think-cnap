@@ -380,11 +380,10 @@ security_domains:
       - code: SEC04-BP01
         text: Configure AWS logging
         action_items:
-          - measure: >-
-              DETECTION: Configure AWS CloudTrail service
+          - measure: 'DETECTION: Configure AWS CloudTrail service'
             comment: >-
-              Configure AWS CloudTrail to get management and data events. Create multi-region
-              trail and apply it to your AWS Organization. Export AWS CloudTrail logs to S3 bucket.
+              Configure AWS CloudTrail to get management and data events. Create multi-region trail and apply it to your
+              AWS Organization. Export AWS CloudTrail logs to S3 bucket.
             mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: high
             effort: low
@@ -394,8 +393,8 @@ security_domains:
             tags: aws
           - measure: 'DETECTION: Configure Kubernetes audit logs'
             comment: >-
-              Configure Kubernetes audit policy to catch API calls. In case of AWS EKS, audit logs 
-              are stored in AWS CloudWatch
+              Configure Kubernetes audit policy to catch API calls. In case of AWS EKS, audit logs  are stored in AWS
+              CloudWatch
             mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: high
             effort: low
@@ -403,13 +402,10 @@ security_domains:
             maturity: 2
             goal: 3
             tags: kubernetes
-          - measure: >-
-              MITIGATION: Protect the AWS logs
+          - measure: 'MITIGATION: Protect the AWS logs'
             comment: >-
-              Enable AWS SSE-KMS encryption for AWS CloudTrail logs and log files validation.
-              <br>
-              <br>
-              Configure SCP Policy to prevent the modification of AWS CloudTrail logging configuration.
+              Enable AWS SSE-KMS encryption for AWS CloudTrail logs and log files validation. <br> <br> Configure SCP
+              Policy to prevent the modification of AWS CloudTrail logging configuration.
             mitre: DefenseEvasion:DisableOrModifyCloudLogs
             impact: medium
             effort: low
@@ -420,20 +416,15 @@ security_domains:
       - code: SEC04-BP02
         text: Capture logs, findings, and metrics in standardized locations
         action_items:
-          - measure: >-
-              DETECTION: Implement Security Information & Event Management platform (SIEM)
+          - measure: 'DETECTION: Implement Security Information & Event Management platform (SIEM)'
             comment: >-
               Consider deploying <a target="_blank" class="new-window"
-              href="https://github.com/aws-samples/siem-on-amazon-opensearch-service">SIEM on 
-              Amazon OpenSearch service</a> or use 
-              <a target="_blank" class="new-window" href="https://www.elastic.co/elasticsearch">
-              Elasticsearch</a>
-              <br>
-              <br>
-              AWS Detective and Security Lake can be useful for this purpose as well. Keep in mind that 
-              AWS Detective doesn't build relations between the affected resources and identities. This is a 
-              limitation of the service which makes it less useful for security use cases. AWS Security Lake 
-              allows to get access to the raw data from AWS Detective interface.
+              href="https://github.com/aws-samples/siem-on-amazon-opensearch-service">SIEM on  Amazon OpenSearch
+              service</a> or use  <a target="_blank" class="new-window" href="https://www.elastic.co/elasticsearch">
+              Elasticsearch</a> <br> <br> AWS Detective and Security Lake can be useful for this purpose as well. Keep
+              in mind that  AWS Detective doesn't build relations between the affected resources and identities. This is
+              a  limitation of the service which makes it less useful for security use cases. AWS Security Lake  allows
+              to get access to the raw data from AWS Detective interface.
             mitre: undefined
             impact: high
             effort: medium
@@ -444,10 +435,8 @@ security_domains:
       - code: SEC04-BP03
         text: Correlate and enrich security alerts
         action_items:
-          - measure: >- 
-              DETECTION: Implement Intrusion Detection System (IDS)
-            comment: >-
-              Deploy AWS GuardDuty to detect suspicious API calls and network activity.
+          - measure: 'DETECTION: Implement Intrusion Detection System (IDS)'
+            comment: Deploy AWS GuardDuty to detect suspicious API calls and network activity.
             mitre: undefined
             impact: high
             effort: low
@@ -455,10 +444,8 @@ security_domains:
             maturity: 2
             goal: 3
             tags: aws
-          - measure: >-
-              DETECTION: Implement Kubernetes Audit Log Analysis
-            comment: >- 
-              In case of AWS EKS usage, AWS GuardDuty has EKS Protection feature. 
+          - measure: 'DETECTION: Implement Kubernetes Audit Log Analysis'
+            comment: 'In case of AWS EKS usage, AWS GuardDuty has EKS Protection feature. '
             mitre: undefined
             impact: high
             effort: medium
@@ -466,11 +453,10 @@ security_domains:
             maturity: 2
             goal: 3
             tags: kubernetes
-          - measure: >- 
-              DETECTION: Implement Kubernetes Runtime Monitoring
+          - measure: 'DETECTION: Implement Kubernetes Runtime Monitoring'
             comment: >-
-              In case of AWS EKS usage, AWS GuardDuty has an agent for this. 
-              Also you can consider open-source solutions like Tetragon or Falco. 
+              In case of AWS EKS usage, AWS GuardDuty has an agent for this.  Also you can consider open-source
+              solutions like Tetragon or Falco. 
             mitre: undefined
             impact: high
             effort: medium
@@ -481,11 +467,8 @@ security_domains:
       - code: SEC04-BP04
         text: Initiate remediation for non-compliant resources
         action_items:
-          - measure: >-
-              DETECTION: Implement Cloud Security Posture Management System (CSPM)
-            comment: >-  
-              Use AWS SecurityHub to detect non-compliant resources. There is also open-source tools like 
-              Prowler.
+          - measure: 'DETECTION: Implement Cloud Security Posture Management System (CSPM)'
+            comment: Use AWS SecurityHub to detect non-compliant resources. There is also open-source tools like  Prowler.
             mitre: undefined
             impact: high
             effort: medium
@@ -493,8 +476,7 @@ security_domains:
             maturity: 2
             goal: 3
             tags: aws
-          - measure: >-
-              DETECTION: Implement Kubernetes Security Posture Management System (KSPM)
+          - measure: 'DETECTION: Implement Kubernetes Security Posture Management System (KSPM)'
             comment: >-
               There is <a target="_blank" class="new-window href="https://github.com/aquasecurity/trivy-operator">
               trivy-operator</a> to detect non-compliant resources.
@@ -505,8 +487,7 @@ security_domains:
             maturity: 2
             goal: 3
             tags: kubernetes
-          - measure: >-
-              MITIGATION: Don't use privileged containers
+          - measure: 'MITIGATION: Don''t use privileged containers'
             mitre: undefined
             impact: high
             effort: low
@@ -514,8 +495,7 @@ security_domains:
             maturity: 2
             goal: 3
             tags: kubernetes
-          - measure: >- 
-              MITIGATION: Use read-only file system for containers
+          - measure: 'MITIGATION: Use read-only file system for containers'
             mitre: undefined
             impact: high
             effort: medium

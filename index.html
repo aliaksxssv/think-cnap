@@ -142,11 +142,11 @@
 
   <!-- Open file -->
   <div id="loader" class="mb-6">
-    <button id="openFileBtn" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded flex items-center space-x-2">
-      <span>Open data file</span>
-      <div id="loadingSpinner" class="loading-spinner hidden"></div>
+    <button id="openFileBtn" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded flex items-center space-x-2" disabled>
+      <span>Open different data file</span>
+      <div id="loadingSpinner" class="loading-spinner"></div>
     </button>
-    <p class="text-gray-400 text-sm mt-2">Select a YAML file containing your security maturity data</p>
+    <p class="text-gray-400 text-sm mt-2">Loading data.yaml automatically... If not found, you can select a different YAML file</p>
   </div>
 
   <!-- Main app -->
@@ -184,12 +184,53 @@ class SecurityMaturityDashboard {
   init() {
     this.bindEvents();
     this.setupBeforeUnloadWarning();
+    this.tryLoadDefaultFile();
   }
 
   bindEvents() {
     document.getElementById('openFileBtn').addEventListener('click', () => this.openFile());
     document.getElementById('saveBtn')?.addEventListener('click', () => this.saveChanges());
     document.getElementById('exportBtn')?.addEventListener('click', () => this.exportData());
+  }
+
+  async tryLoadDefaultFile() {
+    try {
+      this.showLoading('loadingSpinner');
+      document.getElementById('openFileBtn').disabled = true;
+      
+      // Try to fetch data.yaml from the same directory
+      const response = await fetch('./data.yaml');
+      
+      if (response.ok) {
+        const text = await response.text();
+        this.config = this.parseAndValidateYAML(text);
+        this.fileHandle = null; // No file handle for auto-loaded file
+        
+        this.hideLoading('loadingSpinner');
+        document.getElementById('loader').classList.add('hidden');
+        document.getElementById('main').classList.remove('hidden');
+        this.initApp();
+        this.showNotification('Default data.yaml loaded successfully!');
+      } else {
+        // File doesn't exist, show the file picker interface
+        this.hideLoading('loadingSpinner');
+        this.showFilePickerInterface();
+      }
+    } catch (error) {
+      // Error loading default file, show the file picker interface
+      this.hideLoading('loadingSpinner');
+      this.showFilePickerInterface();
+      console.log('Default data.yaml not found, showing file picker');
+    }
+  }
+
+  showFilePickerInterface() {
+    const openBtn = document.getElementById('openFileBtn');
+    const description = document.querySelector('#loader p');
+    
+    openBtn.disabled = false;
+    openBtn.querySelector('span').textContent = 'Open data file';
+    description.textContent = 'data.yaml not found. Select a YAML file containing your security maturity data';
   }
 
   setupBeforeUnloadWarning() {
@@ -336,10 +377,45 @@ class SecurityMaturityDashboard {
       this.showLoading('saveSpinner');
       
       if (!this.fileHandle) {
+        // Try to save to data.yaml in the same directory (for auto-loaded file)
+        try {
+          const yamlText = jsyaml.dump(this.config, {
+            indent: 2,
+            lineWidth: 120,
+            noRefs: true
+          });
+          
+          // Try to use File System Access API to save to data.yaml
+          if (window.showSaveFilePicker) {
+            const fileHandle = await window.showSaveFilePicker({
+              suggestedName: 'data.yaml',
+              types: [{
+                description: 'YAML files',
+                accept: {
+                  'text/yaml': ['.yaml', '.yml'],
+                  'text/plain': ['.yaml', '.yml']
+                }
+              }]
+            });
+            
+            const writable = await fileHandle.createWritable();
+            await writable.write(yamlText);
+            await writable.close();
+            
+            this.fileHandle = fileHandle; // Store handle for future saves
+            this.hasUnsavedChanges = false;
+            this.hideLoading('saveSpinner');
+            this.showNotification('Data file saved successfully!');
+            return;
+          }
+        } catch (saveError) {
+          console.log('Save picker cancelled or failed, falling back to export');
+        }
+        
         // Fallback mode - export file instead
         this.hideLoading('saveSpinner');
         this.exportData();
-        this.showNotification('Changes exported as new file (save not supported in this browser)!', 'warning');
+        this.showNotification('Changes exported as new file!', 'warning');
         return;
       }
 
@@ -376,7 +452,7 @@ class SecurityMaturityDashboard {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'security-maturity-export.yaml';
+      a.download = this.fileHandle ? 'security-maturity-export.yaml' : 'data.yaml';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
