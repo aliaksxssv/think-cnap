@@ -158,7 +158,6 @@
           <span>Open File</span>
           <div id="openNewFileSpinner" class="loading-spinner hidden w-4 h-4"></div>
         </button>
-        <button id="exportBtn" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm">Export</button>
         <button id="saveBtn" class="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded text-sm flex items-center space-x-1">
           <span>Save Changes</span>
           <div id="saveSpinner" class="loading-spinner hidden w-4 h-4"></div>
@@ -195,7 +194,6 @@ class SecurityMaturityDashboard {
     document.getElementById('openFileBtn').addEventListener('click', () => this.openFile());
     document.getElementById('openNewFileBtn')?.addEventListener('click', () => this.openNewFile());
     document.getElementById('saveBtn')?.addEventListener('click', () => this.saveChanges());
-    document.getElementById('exportBtn')?.addEventListener('click', () => this.exportData());
   }
 
   async tryLoadDefaultFile() {
@@ -500,10 +498,9 @@ class SecurityMaturityDashboard {
           console.log('Save picker cancelled or failed, falling back to export');
         }
         
-        // Fallback mode - export file instead
+        // Fallback mode - show error message
         this.hideLoading('saveSpinner');
-        this.exportData();
-        this.showNotification('Changes exported as new file!', 'warning');
+        this.showNotification('Unable to save - File System Access API not supported or file not accessible', 'error');
         return;
       }
 
@@ -528,29 +525,7 @@ class SecurityMaturityDashboard {
     }
   }
 
-  exportData() {
-    try {
-      const yamlText = jsyaml.dump(this.config, {
-        indent: 2,
-        lineWidth: 120,
-        noRefs: true
-      });
-      
-      const blob = new Blob([yamlText], { type: 'text/yaml' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = this.fileHandle ? 'security-maturity-export.yaml' : 'data.yaml';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      this.showNotification('Data exported successfully!');
-    } catch (error) {
-      this.showNotification(`Export failed: ${error.message}`, 'error');
-    }
-  }
+
 
   calculateWeight(actionItem) {
     const impact = this.IMPACT_MAP[actionItem.impact] || 1;
