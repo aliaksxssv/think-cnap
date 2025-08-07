@@ -601,7 +601,7 @@ security_domains:
         text: Create network layers
         action_items:
           - measure: >-
-              MITIGATION: Create VPCs and subnets with/without Internet access for your workloads
+              MITIGATION: Maintain VPCs and subnets with/without Internet access
             mitre: undefined
             impact: high
             effort: medium
@@ -613,8 +613,9 @@ security_domains:
         text: Control traffic flow within your network layers
         action_items:
           - measure: >-
-              MITIGATION: Control traffic flow within your network layers. Deploy AWS Network Firewall,  configure AWS
-              Security Groups
+              MITIGATION: Control traffic flow within your network layers
+            comment: >-
+              Deploy AWS Network Firewall, configure AWS Security Groups.
             mitre: undefined
             impact: high
             effort: medium
@@ -622,7 +623,10 @@ security_domains:
             maturity: 0
             goal: 0
             tags: aws
-          - measure: 'MITIGATION: Control traffic flow between the pods. Deploy Istio or Cilium'
+          - measure: >-
+              MITIGATION: Control traffic flow between the pods
+            comment: >-
+              Consider Istio or Cilium.
             mitre: undefined
             impact: high
             effort: medium
@@ -671,13 +675,13 @@ security_domains:
         text: Perform vulnerability management
         action_items:
           - measure: >-
-              DETECTION: Scan EC2 instances for vulnerabilities. 
+              DETECTION: Scan EC2 instances for vulnerabilities
             comment: >-
               Use AWS Inspector. It supports both agent and agentless scanning options. 
               <br>
               <br>
-              Consider open-source tool like Wazuh Agent. Rely on EPSS, environment (prod, staging, dev, etc.) and host exposure 
-              (internal, internet-facing) to get right prioritization of the findings.
+              Consider open-source tool like Wazuh Agent. Rely on Exploit Prediction Scoring System (EPSS), environment (prod, staging, dev, etc.) and host exposure 
+              (internal, internet-facing) to get the right prioritization of the findings.
             mitre: undefined
             impact: high
             effort: medium
@@ -686,9 +690,13 @@ security_domains:
             goal: 0
             tags: aws
           - measure: >-
-              DETECTION: Scan docker images for vulnerabilities. Amazon ECR has a vulnerability scanning feature. <a
-              target="_blank" class="new-window" href="https://trivy.dev/latest/docs/target/container_image/">Trivy</a> 
-              also has docker images scanning capabilities
+              DETECTION: Scan docker images for vulnerabilities 
+            comment: >-
+              Consider Amazon ECR vulnerability scanning feature. 
+              <br>
+              <br>
+              <a target="_blank" class="new-window" href="https://trivy.dev/latest/docs/target/container_image/">Trivy</a> 
+              also has docker images scanning capabilities.
             mitre: undefined
             impact: high
             effort: medium
@@ -699,7 +707,10 @@ security_domains:
       - code: SEC06-BP02
         text: Provision compute from hardened images
         action_items:
-          - measure: 'MITIGATION: Provision compute from hardened images. Use AWS managed AMIs'
+          - measure: >-
+              MITIGATION: Provision compute from hardened images. 
+            comment: >-
+              Consider AWS managed AMIs.
             mitre: undefined
             impact: high
             effort: medium
@@ -708,8 +719,9 @@ security_domains:
             goal: 0
             tags: aws
           - measure: >-
-              MITIGATION: Implement distroless images. Consider the tool <a target="_blank" class="new-window"
-              href="https://www.rapidfort.com/">RapidFort</a>
+              MITIGATION: Implement distroless images. 
+            comment: >-
+              Consider the tool <a target="_blank" class="new-window" href="https://www.rapidfort.com/">RapidFort</a>
             mitre: undefined
             impact: high
             effort: medium
@@ -721,8 +733,9 @@ security_domains:
         text: Reduce manual management and interactive access
         action_items:
           - measure: >-
-              MITIGATION: Reduce manual management and interactive access.  Use AWS Systems Manager or
-              Ansible/Chef/Puppet
+              MITIGATION: Reduce manual management and interactive access
+            comment: >-
+              Use AWS Systems Manager or Ansible/Chef/Puppet.
             mitre: undefined
             impact: high
             effort: medium
@@ -739,7 +752,10 @@ security_domains:
               Consider osquery to validate software integrity or Wazuh File Integrity Monitoring (FIM).
               <br>
               <br>
-              EBPF-based FIM can be used as well. For example, Falco or Tetragon can be used to detect suspicious file changes.
+              Check software packages signatures to validate software integrity.
+              <br>
+              <br>
+              EBPF-based FIM like Falco or Tetragon can be used to detect suspicious file changes.
             mitre: undefined
             impact: medium
             effort: medium
@@ -761,7 +777,8 @@ security_domains:
       - code: SEC06-BP05
         text: Automate compute protection
         action_items:
-          - measure: 'MITIGATION: Automate compute protection. Use AWS Tags to manage your resources'
+          - measure: >-
+              MITIGATION: Automate compute protection. Use AWS Tags to manage your resources
             mitre: undefined
             impact: high
             effort: medium
@@ -774,7 +791,8 @@ security_domains:
       - code: SEC07-BP01
         text: Understand your data classification scheme
         action_items:
-          - measure: 'DETECTION: Understand your data classification scheme'
+          - measure: >-
+              DETECTION: Understand your data classification scheme
             mitre: undefined
             impact: medium
             effort: medium
@@ -786,8 +804,7 @@ security_domains:
         text: Apply data protection controls based on data sensitivity
         action_items:
           - measure: >-
-              MITIGATION: Apply data protection controls based on data sensitivity.  Use AWS KMS to encrypt sensitive
-              data
+              MITIGATION: Apply data protection controls based on data sensitivity
             mitre: undefined
             impact: high
             effort: medium
@@ -799,8 +816,9 @@ security_domains:
         text: Automate identification and classification
         action_items:
           - measure: >-
-              DETECTION: Automate identification and classification.  Use AWS Macie to detect resources with sensitive
-              data
+              DETECTION: Automate identification and classification
+            comment: >-
+              Consider AWS Macie to detect resources with sensitive data.
             mitre: undefined
             impact: medium
             effort: medium
@@ -808,7 +826,10 @@ security_domains:
             maturity: 0
             goal: 0
             tags: aws
-          - measure: 'DETECTION: Automate sensitive data observability in Kubernetes clusters'
+          - measure: >-
+              DETECTION: Automate sensitive data observability in Kubernetes clusters
+            comment: >-
+              Consider DSPM Soveren.io to detect sensitive data in Kubernetes clusters.
             mitre: undefined
             impact: medium
             effort: medium
@@ -833,7 +854,7 @@ security_domains:
           - measure: >- 
               MITIGATION: Don't store any sensitive data inside the container
             comment: >-
-              Consider read-only file system for containers. This is a good practice to reduce the risk of data leakage.
+              Consider read-only file system for containers to reduce the risk of data leakage.
             mitre: undefined
             impact: high
             effort: medium
@@ -844,7 +865,8 @@ security_domains:
       - code: SEC08-BP01
         text: Implement secure key management
         action_items:
-          - measure: Implement secure key management
+          - measure: >-
+              MITIGATION: Implement secure key management
             mitre: undefined
             impact: high
             effort: medium
@@ -855,7 +877,8 @@ security_domains:
       - code: SEC08-BP02
         text: Enforce encryption at rest
         action_items:
-          - measure: Enforce encryption at rest
+          - measure: >-
+              MITIGATION: Enforce encryption at rest
             mitre: undefined
             impact: high
             effort: medium
@@ -866,7 +889,8 @@ security_domains:
       - code: SEC08-BP03
         text: Automate data at rest protection
         action_items:
-          - measure: Automate data at rest protection
+          - measure: >-
+              MITIGATION: Automate data at rest protection
             mitre: undefined
             impact: high
             effort: medium
@@ -877,7 +901,8 @@ security_domains:
       - code: SEC08-BP04
         text: Enforce access control
         action_items:
-          - measure: 'MITIGATION: Enforce access control. Use AWS IAM to manage access to the resources'
+          - measure: >-
+              MITIGATION: Use AWS tags to manage access based on data sensitivity
             mitre: undefined
             impact: medium
             effort: medium
@@ -888,7 +913,8 @@ security_domains:
       - code: SEC09-BP01
         text: Implement secure key and certificate management
         action_items:
-          - measure: 'MITIGATION: Deploy PKI infrastructure. Use AWS Certificate Manager to manage your certificates'
+          - measure: >-
+              MITIGATION: Deploy PKI infrastructure. Use AWS Certificate Manager to manage your certificates
             mitre: undefined
             impact: high
             effort: medium
@@ -900,8 +926,8 @@ security_domains:
         text: Enforce encryption in transit
         action_items:
           - measure: >-
-              MITIGATION: Enforce encryption in transit. Enforce strict  security policies for your Application Load
-              Balancer
+              MITIGATION: Enforce encryption in transit. Enforce strict security policies to your 
+              Application Load Balancer
             mitre: undefined
             impact: high
             effort: medium
@@ -920,7 +946,8 @@ security_domains:
       - code: SEC09-BP03
         text: Authenticate network communications
         action_items:
-          - measure: 'MITIGATION: Authenticate network communications. Use AWS IAM to manage access to the resources'
+          - measure: >-
+              MITIGATION: Use TLS certificates to authenticate the network communications
             mitre: undefined
             impact: medium
             effort: high
@@ -1094,6 +1121,8 @@ security_domains:
             tags: aws
           - measure: >-
               DETECTION: Implement Bug Bounty program
+            comment: >-
+              Consider HackerOne or Bugcrowd for this.
             mitre: undefined
             impact: high
             effort: low
@@ -1106,6 +1135,8 @@ security_domains:
         action_items:
           - measure: >-
               DETECTION: Conduct code reviews
+            comment: >-
+              Consider manual code review or AI Assistant like CodeRabbit.
             mitre: undefined
             impact: medium
             effort: high
@@ -1128,7 +1159,8 @@ security_domains:
       - code: SEC11-BP06
         text: Deploy software programmatically
         action_items:
-          - measure: Deploy software programmatically
+          - measure: >-
+              MITIGATION: Deploy software programmatically
             mitre: undefined
             impact: high
             effort: medium
@@ -1139,7 +1171,8 @@ security_domains:
       - code: SEC11-BP07
         text: Regularly assess security properties of the pipelines
         action_items:
-          - measure: Regularly assess security properties of the pipelines
+          - measure: >-
+              MITIGATION: Regularly assess security properties of the pipelines
             mitre: undefined
             impact: high
             effort: low
@@ -1150,7 +1183,10 @@ security_domains:
       - code: SEC11-BP08
         text: Build a program that embeds security ownership in workload teams
         action_items:
-          - measure: Build a program that embeds security ownership in workload teams
+          - measure: >-
+              MITIGATION: Build a program that embeds security ownership in workload teams
+            comment: >- 
+              Consider Internal Developer Portal for this like Backstage from Spotify.
             mitre: undefined
             impact: medium
             effort: medium
