@@ -161,10 +161,17 @@ security_domains:
         action_items:
           - measure_id: SEC02-BP03-001
             measure: >- 
-              MITIGATION: Use secrets management services
+              MITIGATION: implement Secrets Management solution
             comment: >-
               Use AWS Secrets Manager to store and use secrets securely. Consider Hashicorp Vault as well.
             mitre: undefined
+            tags: aws
+          - measure_id: SEC02-BP03-002
+            measure: >- 
+              DETECTION: Implement AWS Health notifications
+            comment: >-
+              There is a notification regarding AWS IAM keys compromise detection.
+            mitre: Reconnaissance:GatherVictimIdentityInformation
             tags: aws
       - code: SEC02-BP04
         text: Rely on a centralized identity provider

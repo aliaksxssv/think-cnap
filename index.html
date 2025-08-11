@@ -1388,13 +1388,13 @@ class SecurityMaturityDashboard {
     const parts = mitreValue.split(':');
     if (parts.length !== 2) {
       // Fallback for malformed MITRE values
-      const sanitizedMitre = mitreValue.replace(/[:/]/g, '_');
+      const sanitizedMitre = mitreValue.replace(/[:/]/g, '_').toLowerCase();
       const linkPath = `https://thinkcnap.org/mitre/${sanitizedMitre}.html`;
       return `<a href="${linkPath}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">${this.escapeHtml(mitreValue)}</a>`;
     }
     
-    const tactic = parts[0].trim();
-    const technique = parts[1].trim().replace(/\//g, '_'); // Replace / with _
+    const tactic = parts[0].trim().toLowerCase();
+    const technique = parts[1].trim().replace(/\//g, '_').toLowerCase(); // Replace / with _ and convert to lowercase
     const linkPath = `https://thinkcnap.org/mitre/${tactic}/${technique}.html`
     
     return `<a href="${linkPath}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">${this.escapeHtml(mitreValue)}</a>`;
