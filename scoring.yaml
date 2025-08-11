@@ -103,6 +103,12 @@ measures:
     goal: 0
   SEC02-BP03-001:
     impact: high
+    effort: low
+    before: 0
+    maturity: 0
+    goal: 0
+  SEC02-BP03-002:
+    impact: high
     effort: medium
     before: 0
     maturity: 0
