@@ -13,7 +13,7 @@ The dashboard provides a comprehensive view of security controls across multiple
 - 🎨 **Modern UI**: Dark theme with responsive design
 - 📱 **Local & Server Ready**: Works both locally and on web servers
 
-<img src="dashboard.png" alt="Dashboard" width="750"/>
+<img src="/images/dashboard.png" alt="Dashboard" width="750"/>
 
 ## 🚀 Quick Start
 
@@ -43,7 +43,7 @@ Assign a weight to each security control by rating both its **Impact** and **Eff
 - **2**: Partial Adoption  
 - **3**: Full Adoption
 
-<img src="assessment.png" alt="Assessment" width="750"/>
+<img src="/images/assessment.png" alt="Assessment" width="750"/>
 
 ## ⚙️ Configuration
 
