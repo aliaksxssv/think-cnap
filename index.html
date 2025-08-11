@@ -25,12 +25,6 @@
       text-decoration: underline;
     }
 
-    #radar {
-      transform: scale(1.15);
-      transform-origin: top center;
-      margin-top: 20px;
-    }
-
     .loading-spinner {
       border: 3px solid #374151;
       border-radius: 50%;
@@ -82,11 +76,11 @@
     .tooltip .tooltiptext {
       visibility: hidden;
       width: 480px;
-      background-color: #1f2937;
-      color: #e5e7eb;
+      background-color: #374151;
+      color: #f9fafb;
       text-align: left;
-      border-radius: 6px;
-      padding: 12px;
+      border-radius: 8px;
+      padding: 16px;
       position: fixed;
       z-index: 9999;
       bottom: auto;
@@ -96,10 +90,10 @@
       margin: 0;
       opacity: 0;
       transition: opacity 0.3s;
-      border: 1px solid #4b5563;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      border: 1px solid #6b7280;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
       font-size: 14px;
-      line-height: 1.4;
+      line-height: 1.5;
       pointer-events: auto;
     }
 
@@ -136,46 +130,73 @@
       font-size: 12px;
       color: #fbbf24;
     }
+
+    /* Styles for undefined values */
+    .undefined-measure {
+      background-color: #4B5563 !important;
+      color: #9CA3AF !important;
+    }
+
+    .undefined-measure select {
+      background-color: #6B7280 !important;
+      color: #9CA3AF !important;
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen p-6">
-  <h1 class="text-3xl font-mono mb-6 text-cyan-300">Cloud Native Application Security Maturity Dashboard</h1>
+  <!-- Header with file controls in top right -->
+  <div class="flex justify-between items-start mb-3">
+    <h1 class="text-3xl font-mono text-cyan-300">Cloud Native Application Security Maturity Dashboard</h1>
+    
+    <!-- Top right area with controls and notifications -->
+    <div class="flex flex-col items-end space-y-2">
+      <!-- File controls -->
+      <div id="file-loader" class="flex items-center space-x-3">
+        <button id="loadScoringBtn" class="bg-cyan-600 hover:bg-cyan-500 px-3 py-2 rounded flex items-center space-x-2 text-sm">
+          <span>Load Scoring File</span>
+          <div id="loadingScoringSpinner" class="loading-spinner hidden w-4 h-4"></div>
+        </button>
+        <button id="saveBtn" class="bg-green-600 hover:bg-green-500 px-3 py-2 rounded flex items-center space-x-2 text-sm">
+          <span>Save Scoring File</span>
+          <div id="saveSpinner" class="loading-spinner hidden w-4 h-4"></div>
+        </button>
+      </div>
+      
+      <!-- Notification area below buttons -->
+      <div id="top-notification-area" class="min-h-[24px]"></div>
+    </div>
+  </div>
 
-  <!-- Open file -->
-  <div id="loader" class="mb-6">
-    <button id="openFileBtn" class="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded flex items-center space-x-2" disabled>
-      <span>Open different data file</span>
-      <div id="loadingSpinner" class="loading-spinner"></div>
-    </button>
-    <p class="text-gray-400 text-sm mt-2">Loading data.yaml automatically... If not found, you can select a different YAML file</p>
+  <!-- Status message -->
+  <div id="status-message" class="mb-1">
+    <p id="file-status" class="text-gray-400 text-sm">
+      <span id="loading-indicator" class="loading-spinner w-4 h-4 inline-block mr-2"></span>
+      Loading controls.yaml automatically...
+    </p>
   </div>
 
   <!-- Main app -->
   <div id="main" class="hidden">
     <div class="flex justify-between items-center mb-6">
       <div id="tabs" class="flex space-x-3 overflow-x-auto"></div>
-      <div class="flex space-x-2">
-        <button id="openNewFileBtn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm flex items-center space-x-1">
-          <span>Open File</span>
-          <div id="openNewFileSpinner" class="loading-spinner hidden w-4 h-4"></div>
-        </button>
-        <button id="saveBtn" class="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded text-sm flex items-center space-x-1">
-          <span>Save Changes</span>
-          <div id="saveSpinner" class="loading-spinner hidden w-4 h-4"></div>
-        </button>
-      </div>
     </div>
     <div id="panes"></div>
   </div>
 
 <script>
+// No embedded data - load from YAML files
+
 class SecurityMaturityDashboard {
     constructor() {
-    this.fileHandle = null;
+    this.controlsFileHandle = null;
+    this.scoringFileHandle = null;
     this.config = null;
+    this.scoring = null;
     this.charts = {};
     this.selectedTags = ['aws', 'kubernetes'];
     this.hasUnsavedChanges = false;
+    this.controlsLoaded = false;
+    this.scoringLoaded = false;
 
     // Constants
     this.IMPACT_MAP = { low: 1, medium: 2, high: 3 };
@@ -188,53 +209,341 @@ class SecurityMaturityDashboard {
   init() {
     this.bindEvents();
     this.setupBeforeUnloadWarning();
-    this.tryLoadDefaultFile();
+    this.tryLoadControlsFile();
   }
 
   bindEvents() {
-    document.getElementById('openFileBtn').addEventListener('click', () => this.openFile());
-    document.getElementById('openNewFileBtn')?.addEventListener('click', () => this.openNewFile());
-    document.getElementById('saveBtn')?.addEventListener('click', () => this.saveChanges());
+    document.getElementById('loadScoringBtn')?.addEventListener('click', () => this.openScoringFile());
+    document.getElementById('saveBtn')?.addEventListener('click', () => this.saveScoringFile());
   }
 
-  async tryLoadDefaultFile() {
+  async tryLoadControlsFile() {
+    // Check if we're running on file:// protocol
+    if (window.location.protocol === 'file:') {
+      // For local file access, show instructions to use file input
+      this.showLocalFileInstructions();
+      return;
+    }
+    
     try {
-      this.showLoading('loadingSpinner');
-      document.getElementById('openFileBtn').disabled = true;
-      
-      // Try to fetch data.yaml from the same directory
-      const response = await fetch('./data.yaml');
-      
+      // Try to fetch controls.yaml from the same directory (web server only)
+      const response = await fetch('./controls.yaml');
       if (response.ok) {
         const text = await response.text();
-        this.config = this.parseAndValidateYAML(text);
-        this.fileHandle = null; // No file handle for auto-loaded file
+        this.config = this.parseAndValidateControlsYAML(text);
+        this.controlsLoaded = true;
         
-        this.hideLoading('loadingSpinner');
-        document.getElementById('loader').classList.add('hidden');
-        document.getElementById('main').classList.remove('hidden');
-        this.initApp();
-        this.showNotification('Default data.yaml loaded successfully!');
+        this.updateFileStatus();
+        this.showNotification('Controls.yaml loaded automatically!');
+        
+        // Try to load scoring.yaml automatically as well
+        this.tryLoadScoringFile();
       } else {
-        // File doesn't exist, show the file picker interface
-        this.hideLoading('loadingSpinner');
-        this.showFilePickerInterface();
+        throw new Error('controls.yaml not found in same directory');
       }
     } catch (error) {
-      // Error loading default file, show the file picker interface
-      this.hideLoading('loadingSpinner');
-      this.showFilePickerInterface();
-      console.log('Default data.yaml not found, showing file picker');
+      // If automatic loading fails, show error and instructions
+      this.showControlsLoadingError();
     }
   }
 
-  showFilePickerInterface() {
-    const openBtn = document.getElementById('openFileBtn');
-    const description = document.querySelector('#loader p');
+  async tryLoadScoringFile() {
+    // Check if we're running on file:// protocol
+    if (window.location.protocol === 'file:') {
+      // For local file access, try to show the app with default values and let user optionally load scoring
+      this.scoring = {}; // Start with empty scoring (will use defaults)
+      this.scoringLoaded = false; // Mark as not loaded so user can still load a file
+      
+      this.mergeControlsWithScoring();
+      this.showMainApp();
+      this.updateFileStatus();
+      this.initApp();
+      // No notification needed - user can see the buttons are available
+      return;
+    }
     
-    openBtn.disabled = false;
-    openBtn.querySelector('span').textContent = 'Open data file';
-    description.textContent = 'data.yaml not found. Select a YAML file containing your security maturity data';
+    try {
+      // Try to fetch scoring.yaml from the same directory (web server only)
+      const response = await fetch('./scoring.yaml');
+      if (response.ok) {
+        const text = await response.text();
+        this.scoring = this.parseAndValidateScoringYAML(text);
+        this.scoringLoaded = true;
+        
+        this.mergeControlsWithScoring();
+        this.showMainApp();
+        this.updateFileStatus();
+        this.initApp();
+        this.showNotification('Both controls.yaml and scoring.yaml loaded automatically!');
+      } else {
+        // Scoring file not found, but that's ok - start with defaults and user can load manually
+        this.scoring = {};
+        this.scoringLoaded = false;
+        
+        this.mergeControlsWithScoring();
+        this.showMainApp();
+        this.updateFileStatus();
+        this.initApp();
+        // No notification needed - user can see the buttons are available
+      }
+    } catch (error) {
+      // Scoring file loading failed, but that's ok - start with defaults and user can load manually
+      this.scoring = {};
+      this.scoringLoaded = false;
+      
+      this.mergeControlsWithScoring();
+      this.showMainApp();
+      this.updateFileStatus();
+      this.initApp();
+      // No notification needed - user can see the buttons are available
+    }
+  }
+
+  showLocalFileInstructions() {
+    const statusElement = document.getElementById('file-status');
+    const fileLoader = document.getElementById('file-loader');
+    
+    // Update status for local file access (no message needed)
+    statusElement.innerHTML = '';
+    statusElement.className = 'text-gray-400 text-sm';
+    
+    // Add a load controls button for local file access
+    const loadControlsBtn = document.createElement('button');
+    loadControlsBtn.id = 'loadControlsBtn';
+    loadControlsBtn.className = 'bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded flex items-center space-x-2 text-sm';
+    loadControlsBtn.innerHTML = `
+      <span>Select Controls File</span>
+      <div id="loadingControlsSpinner" class="loading-spinner hidden w-4 h-4"></div>
+    `;
+    
+    // Insert the button at the beginning
+    fileLoader.insertBefore(loadControlsBtn, fileLoader.firstChild);
+    
+    // Add click handler
+    loadControlsBtn.addEventListener('click', () => this.openControlsFile());
+    
+    // No notification needed for local file mode
+  }
+
+  async openControlsFile() {
+    try {
+      this.showLoading('loadingControlsSpinner');
+      
+      // Check if File System Access API is supported
+      if (window.showOpenFilePicker) {
+        // Modern API approach
+        [this.controlsFileHandle] = await window.showOpenFilePicker({
+          types: [{
+            description: 'Controls YAML files',
+            accept: {
+              'text/yaml': ['.yaml', '.yml'],
+              'text/plain': ['.yaml', '.yml']
+            }
+          }],
+          multiple: false
+        });
+
+        const file = await this.controlsFileHandle.getFile();
+        const text = await file.text();
+        this.config = this.parseAndValidateControlsYAML(text);
+        this.controlsLoaded = true;
+        
+        this.hideLoading('loadingControlsSpinner');
+        
+        // Remove the temporary load controls button
+        const loadControlsBtn = document.getElementById('loadControlsBtn');
+        if (loadControlsBtn) {
+          loadControlsBtn.remove();
+        }
+        
+        this.updateFileStatus();
+        this.showNotification('Controls file loaded successfully!');
+        
+        // For local file mode, don't try to auto-load scoring - user needs to select it
+        this.updateFileStatus();
+      } else {
+        // Fallback to traditional file input
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.yaml,.yml';
+        
+        input.onchange = async (e) => {
+          try {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const text = await file.text();
+            this.config = this.parseAndValidateControlsYAML(text);
+            this.controlsFileHandle = null;
+            this.controlsLoaded = true;
+            this.hideLoading('loadingControlsSpinner');
+            
+            // Remove the temporary load controls button
+            const loadControlsBtn = document.getElementById('loadControlsBtn');
+            if (loadControlsBtn) {
+              loadControlsBtn.remove();
+            }
+            
+            this.updateFileStatus();
+            this.showNotification('Controls file loaded successfully!');
+          } catch (error) {
+            this.hideLoading('loadingControlsSpinner');
+            this.showNotification(`Error loading controls file: ${error.message}`, 'error');
+          }
+        };
+        
+        input.click();
+      }
+      
+    } catch (error) {
+      this.hideLoading('loadingControlsSpinner');
+      if (error.message !== 'File selection cancelled') {
+        this.showNotification(`Error loading controls file: ${error.message}`, 'error');
+        console.error('Controls file loading error:', error);
+      }
+    }
+  }
+
+  showControlsLoadingError() {
+    const statusElement = document.getElementById('file-status');
+    
+    // Update status to show error
+    statusElement.innerHTML = '❌ ERROR: controls.yaml must be in the same directory as this HTML file';
+    statusElement.className = 'text-red-400 text-sm font-semibold';
+    
+    // Disable all buttons since we can't proceed without controls
+    document.getElementById('loadScoringBtn').disabled = true;
+    document.getElementById('saveBtn').disabled = true;
+    
+    this.showNotification('ERROR: controls.yaml file must be placed in the same directory as index-standalone.html', 'error');
+  }
+
+  updateFileStatus() {
+    const statusElement = document.getElementById('file-status');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const loadScoringBtn = document.getElementById('loadScoringBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    
+    if (!this.controlsLoaded) {
+      statusElement.innerHTML = '<span id="loading-indicator" class="loading-spinner w-4 h-4 inline-block mr-2"></span>Loading controls.yaml automatically...';
+      statusElement.className = 'text-yellow-400 text-sm';
+      loadScoringBtn.disabled = true;
+      saveBtn.disabled = true;
+    } else if (!this.scoringLoaded) {
+
+      statusElement.className = 'text-cyan-400 text-sm';
+      loadScoringBtn.disabled = false;
+      saveBtn.disabled = true;
+    } else {
+      statusElement.textContent = 'Both files loaded successfully! Dashboard is ready.';
+      statusElement.className = 'text-green-400 text-sm';
+      loadScoringBtn.disabled = false;
+      saveBtn.disabled = false;
+    }
+  }
+
+  showMainApp() {
+    document.getElementById('status-message').classList.add('hidden');
+    document.getElementById('main').classList.remove('hidden');
+  }
+
+
+
+  parseAndValidateControlsYAML(text) {
+    try {
+      const controls = jsyaml.load(text);
+      
+      // Validate structure
+      if (!controls.security_domains || !Array.isArray(controls.security_domains)) {
+        throw new Error('Invalid controls YAML structure: missing or invalid security_domains array');
+      }
+
+      return controls;
+    } catch (error) {
+      throw new Error(`Controls YAML parsing failed: ${error.message}`);
+    }
+  }
+
+  async openScoringFile() {
+    try {
+      this.showLoading('loadingScoringSpinner');
+      
+      // Check if File System Access API is supported
+      if (window.showOpenFilePicker) {
+        // Modern API approach
+        [this.scoringFileHandle] = await window.showOpenFilePicker({
+          types: [{
+            description: 'Scoring YAML files',
+            accept: {
+              'text/yaml': ['.yaml', '.yml'],
+              'text/plain': ['.yaml', '.yml']
+            }
+          }],
+          multiple: false
+        });
+
+        const file = await this.scoringFileHandle.getFile();
+        const text = await file.text();
+        this.scoring = this.parseAndValidateScoringYAML(text);
+        this.scoringLoaded = true;
+        
+        this.hideLoading('loadingScoringSpinner');
+        this.updateFileStatus();
+        this.hasUnsavedChanges = false;
+        
+        // If controls are already loaded, merge and init app
+        if (this.controlsLoaded) {
+          this.mergeControlsWithScoring();
+          this.showMainApp();
+          this.initApp();
+          this.showNotification('Scoring file loaded successfully! Dashboard is ready.');
+        } else {
+          this.showNotification('Scoring file loaded! Please load controls.yaml next.');
+        }
+      } else {
+        // Fallback to traditional file input
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.yaml,.yml';
+        
+        input.onchange = async (e) => {
+          try {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const text = await file.text();
+            this.scoring = this.parseAndValidateScoringYAML(text);
+            this.scoringFileHandle = null;
+            this.scoringLoaded = true;
+            this.hideLoading('loadingScoringSpinner');
+            this.updateFileStatus();
+            this.hasUnsavedChanges = false;
+            
+            // If controls are already loaded, merge and init app
+            if (this.controlsLoaded) {
+              this.mergeControlsWithScoring();
+              this.showMainApp();
+              this.initApp();
+              this.showNotification('Scoring file loaded successfully! Dashboard is ready.');
+            } else {
+              this.showNotification('Scoring file loaded! Please load controls.yaml next.');
+            }
+          } catch (error) {
+            this.hideLoading('loadingScoringSpinner');
+            this.showNotification(`Error loading scoring file: ${error.message}`, 'error');
+          }
+        };
+        
+        input.click();
+      }
+      
+    } catch (error) {
+      this.hideLoading('loadingScoringSpinner');
+      if (error.message !== 'File selection cancelled') {
+        this.showNotification(`Error loading scoring file: ${error.message}`, 'error');
+        console.error('Scoring file loading error:', error);
+      }
+    }
   }
 
   setupBeforeUnloadWarning() {
@@ -248,15 +557,38 @@ class SecurityMaturityDashboard {
   }
 
   showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
+    const topNotificationArea = document.getElementById('top-notification-area');
+    if (topNotificationArea) {
+      // Show notification in top right area above buttons
+      const notification = document.createElement('div');
+      const colorClass = type === 'error' ? 'text-red-400' : 
+                        type === 'warning' ? 'text-yellow-400' : 
+                        type === 'info' ? 'text-cyan-400' : 'text-green-400';
+      notification.className = `${colorClass} text-xs text-right`;
+      notification.textContent = message;
+      
+      // Clear any existing notification
+      topNotificationArea.innerHTML = '';
+      topNotificationArea.appendChild(notification);
+      
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        if (topNotificationArea.contains(notification)) {
+          topNotificationArea.innerHTML = '';
+        }
+      }, 3000);
+    } else {
+      // Fallback to original notification system
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
 
-    setTimeout(() => {
-      notification.classList.add('fade-out');
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
+      setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
   }
 
   showLoading(elementId) {
@@ -273,262 +605,197 @@ class SecurityMaturityDashboard {
     }
   }
 
-  async openNewFile() {
-    // Check for unsaved changes
-    if (this.hasUnsavedChanges) {
-      const confirmOpen = confirm('You have unsaved changes. Opening a new file will lose these changes. Continue?');
-      if (!confirmOpen) {
-        return;
-      }
-    }
-
+  parseAndValidateScoringYAML(text) {
     try {
-      this.showLoading('openNewFileSpinner');
+      const scoring = jsyaml.load(text);
       
-      // Check if File System Access API is supported
-      if (window.showOpenFilePicker) {
-        // Modern API approach
-        [this.fileHandle] = await window.showOpenFilePicker({
-          types: [{
-            description: 'YAML files',
-            accept: {
-              'text/yaml': ['.yaml', '.yml'],
-              'text/plain': ['.yaml', '.yml']
-            }
-          }],
-          multiple: false
-        });
-
-        const file = await this.fileHandle.getFile();
-        const text = await file.text();
-        this.config = this.parseAndValidateYAML(text);
-        
-        this.hideLoading('openNewFileSpinner');
-        this.hasUnsavedChanges = false;
-        this.initApp();
-        this.showNotification('New file loaded successfully!');
-      } else {
-        // Fallback to traditional file input
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.yaml,.yml';
-        
-        return new Promise((resolve, reject) => {
-          input.onchange = async (e) => {
-            try {
-              const file = e.target.files[0];
-              if (!file) {
-                reject(new Error('No file selected'));
-                return;
-              }
-              
-              const text = await file.text();
-              this.config = this.parseAndValidateYAML(text);
-              this.fileHandle = null; // No handle in fallback mode
-              this.hasUnsavedChanges = false;
-              this.hideLoading('openNewFileSpinner');
-              this.initApp();
-              this.showNotification('New file loaded successfully!');
-              resolve();
-            } catch (error) {
-              this.hideLoading('openNewFileSpinner');
-              reject(error);
-            }
-          };
-          
-          input.onclick = () => {
-            input.oncancel = () => {
-              this.hideLoading('openNewFileSpinner');
-              reject(new Error('File selection cancelled'));
-            };
-          };
-          
-          input.click();
-        });
-      }
-      
-    } catch (error) {
-      this.hideLoading('openNewFileSpinner');
-      if (error.message !== 'File selection cancelled') {
-        this.showNotification(`Error loading file: ${error.message}`, 'error');
-        console.error('File loading error:', error);
-      }
-    }
-  }
-
-  async openFile() {
-    try {
-      this.showLoading('loadingSpinner');
-      
-      // Check if File System Access API is supported
-      if (window.showOpenFilePicker) {
-        // Modern API approach
-        [this.fileHandle] = await window.showOpenFilePicker({
-          types: [{
-            description: 'YAML files',
-            accept: {
-              'text/yaml': ['.yaml', '.yml'],
-              'text/plain': ['.yaml', '.yml']
-            }
-          }],
-          multiple: false
-        });
-
-        const file = await this.fileHandle.getFile();
-        const text = await file.text();
-        this.config = this.parseAndValidateYAML(text);
-      } else {
-        // Fallback to traditional file input
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.yaml,.yml';
-        
-        return new Promise((resolve, reject) => {
-          input.onchange = async (e) => {
-            try {
-              const file = e.target.files[0];
-              if (!file) {
-                reject(new Error('No file selected'));
-                return;
-              }
-              
-              const text = await file.text();
-              this.config = this.parseAndValidateYAML(text);
-              this.fileHandle = null; // No handle in fallback mode
-              resolve();
-            } catch (error) {
-              reject(error);
-            }
-          };
-          
-          input.onclick = () => {
-            input.oncancel = () => reject(new Error('File selection cancelled'));
-          };
-          
-          input.click();
-        }).then(() => {
-          this.hideLoading('loadingSpinner');
-          document.getElementById('loader').classList.add('hidden');
-          document.getElementById('main').classList.remove('hidden');
-          this.initApp();
-          this.showNotification('File loaded successfully!');
-        });
-      }
-      
-      this.hideLoading('loadingSpinner');
-      document.getElementById('loader').classList.add('hidden');
-      document.getElementById('main').classList.remove('hidden');
-      this.initApp();
-      this.showNotification('File loaded successfully!');
-      
-    } catch (error) {
-      this.hideLoading('loadingSpinner');
-      this.showNotification(`Error loading file: ${error.message}`, 'error');
-      console.error('File loading error:', error);
-    }
-  }
-
-  parseAndValidateYAML(text) {
-    try {
-      const config = jsyaml.load(text);
-      
-      // Handle legacy format
-      if (config.categories && !config.security_domains) {
-        config.security_domains = config.categories;
-        delete config.categories;
-      }
-
       // Validate structure
-      if (!config.security_domains || !Array.isArray(config.security_domains)) {
-        throw new Error('Invalid YAML structure: missing or invalid security_domains array');
+      if (!scoring.measures || typeof scoring.measures !== 'object') {
+        throw new Error('Invalid scoring YAML structure: missing or invalid measures object');
       }
 
-      // Validate each domain
-      config.security_domains.forEach((domain, index) => {
-        if (!domain.name) {
-          throw new Error(`Security domain at index ${index} is missing a name`);
-        }
-        if (!domain.security_controls) {
-          domain.security_controls = [];
-        }
-      });
-
-      return config;
+      return scoring;
     } catch (error) {
-      throw new Error(`YAML parsing failed: ${error.message}`);
+      throw new Error(`Scoring YAML parsing failed: ${error.message}`);
     }
   }
 
-  async saveChanges() {
+  mergeControlsWithScoring() {
+    if (!this.config || !this.scoring) return;
+    
+    // Iterate through all action items and merge with scoring data
+    this.config.security_domains.forEach(domain => {
+      domain.security_controls.forEach(control => {
+        control.action_items.forEach(actionItem => {
+          const measureId = actionItem.measure_id;
+          const scoreData = this.scoring.measures[measureId];
+          
+          if (scoreData) {
+            // Merge scoring data with action item
+            actionItem.impact = scoreData.impact || 'undefined';
+            actionItem.effort = scoreData.effort || 'undefined';
+            actionItem.before = scoreData.before !== undefined ? scoreData.before : 'undefined';
+            actionItem.maturity = scoreData.maturity !== undefined ? scoreData.maturity : 'undefined';
+            actionItem.goal = scoreData.goal !== undefined ? scoreData.goal : 'undefined';
+          } else {
+            // No scoring data found - set default undefined values
+            actionItem.impact = 'undefined';
+            actionItem.effort = 'undefined';
+            actionItem.before = 'undefined';
+            actionItem.maturity = 'undefined';
+            actionItem.goal = 'undefined';
+          }
+        });
+      });
+    });
+  }
+
+  async saveScoringFile() {
     try {
       this.showLoading('saveSpinner');
       
-      if (!this.fileHandle) {
-        // Try to save to data.yaml in the same directory (for auto-loaded file)
-        try {
-          const yamlText = jsyaml.dump(this.config, {
-            indent: 2,
-            lineWidth: 120,
-            noRefs: true
+      // Generate scoring data from current state
+      const scoringData = { measures: {} };
+      
+      this.config.security_domains.forEach(domain => {
+        domain.security_controls.forEach(control => {
+          control.action_items.forEach(actionItem => {
+            if (actionItem.measure_id) {
+              scoringData.measures[actionItem.measure_id] = {
+                impact: actionItem.impact,
+                effort: actionItem.effort,
+                before: actionItem.before,
+                maturity: actionItem.maturity,
+                goal: actionItem.goal
+              };
+            }
           });
-          
-          // Try to use File System Access API to save to data.yaml
-          if (window.showSaveFilePicker) {
-            const fileHandle = await window.showSaveFilePicker({
-              suggestedName: 'data.yaml',
-              types: [{
-                description: 'YAML files',
-                accept: {
-                  'text/yaml': ['.yaml', '.yml'],
-                  'text/plain': ['.yaml', '.yml']
-                }
-              }]
-            });
-            
-            const writable = await fileHandle.createWritable();
-            await writable.write(yamlText);
-            await writable.close();
-            
-            this.fileHandle = fileHandle; // Store handle for future saves
-            this.hasUnsavedChanges = false;
-            this.hideLoading('saveSpinner');
-            this.showNotification('Data file saved successfully!');
-            return;
-          }
-        } catch (saveError) {
-          console.log('Save picker cancelled or failed, falling back to export');
-        }
-        
-        // Fallback mode - show error message
-        this.hideLoading('saveSpinner');
-        this.showNotification('Unable to save - File System Access API not supported or file not accessible', 'error');
-        return;
-      }
-
-      const yamlText = jsyaml.dump(this.config, {
+        });
+      });
+      
+      const yamlText = jsyaml.dump(scoringData, {
         indent: 2,
         lineWidth: 120,
         noRefs: true
       });
       
-      const writable = await this.fileHandle.createWritable();
-      await writable.write(yamlText);
-      await writable.close();
-      
-      this.hasUnsavedChanges = false;
-      this.hideLoading('saveSpinner');
-      this.showNotification('Data file updated successfully!');
+      if (window.showSaveFilePicker) {
+        try {
+          // First, let user browse to see existing files (optional step)
+          const shouldBrowse = await this.askUserToBrowseFirst();
+          let directoryHandle = null;
+          
+          if (shouldBrowse) {
+            try {
+              // Let user pick a directory to see existing files
+              directoryHandle = await window.showDirectoryPicker();
+            } catch (dirError) {
+              // User cancelled directory picker, continue with normal save
+              console.log('Directory picker cancelled, using normal save dialog');
+            }
+          }
+          
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: 'scoring.yaml',
+            startIn: directoryHandle || 'documents',
+            types: [{
+              description: 'Scoring YAML files',
+              accept: {
+                'text/yaml': ['.yaml', '.yml'],
+                'text/plain': ['.yaml', '.yml']
+              }
+            }]
+          });
+          
+          const writable = await fileHandle.createWritable();
+          await writable.write(yamlText);
+          await writable.close();
+          
+          this.scoringFileHandle = fileHandle;
+          this.hasUnsavedChanges = false;
+          this.hideLoading('saveSpinner');
+          this.showNotification('Scoring file saved successfully!');
+        } catch (saveError) {
+          if (saveError.name === 'AbortError') {
+            this.hideLoading('saveSpinner');
+            return; // User cancelled
+          }
+          throw saveError;
+        }
+      } else {
+        // Fallback - create download link
+        const blob = new Blob([yamlText], { type: 'text/yaml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'scoring.yaml';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.hasUnsavedChanges = false;
+        this.hideLoading('saveSpinner');
+        this.showNotification('Scoring file downloaded successfully!');
+      }
       
     } catch (error) {
       this.hideLoading('saveSpinner');
-      this.showNotification(`Error saving file: ${error.message}`, 'error');
-      console.error('Save error:', error);
+      if (error.message !== 'File selection cancelled') {
+        this.showNotification(`Error saving scoring file: ${error.message}`, 'error');
+        console.error('Save error:', error);
+      }
     }
   }
 
-
+  async askUserToBrowseFirst() {
+    return new Promise((resolve) => {
+      // Create a simple dialog to ask user if they want to browse first
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+      modal.innerHTML = `
+        <div class="bg-gray-800 p-6 rounded-lg max-w-md mx-4">
+          <h3 class="text-xl font-semibold text-white mb-4">Save Scoring File</h3>
+          <p class="text-gray-300 mb-6">Would you like to browse to a specific folder first to see existing files?</p>
+          <div class="flex space-x-4">
+            <button id="browseFirstBtn" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-white">
+              Browse First
+            </button>
+            <button id="saveDirectlyBtn" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded text-white">
+              Save Directly
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      document.getElementById('browseFirstBtn').onclick = () => {
+        document.body.removeChild(modal);
+        resolve(true);
+      };
+      
+      document.getElementById('saveDirectlyBtn').onclick = () => {
+        document.body.removeChild(modal);
+        resolve(false);
+      };
+      
+      // Close on background click
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          document.body.removeChild(modal);
+          resolve(false);
+        }
+      };
+    });
+  }
 
   calculateWeight(actionItem) {
+    // Skip items with undefined values
+    if (actionItem.impact === 'undefined' || actionItem.effort === 'undefined') {
+      return 0;
+    }
     const impact = this.IMPACT_MAP[actionItem.impact] || 1;
     const effort = this.EFFORT_MAP[actionItem.effort] || 1;
     return impact / effort;
@@ -547,6 +814,18 @@ class SecurityMaturityDashboard {
       // No tags selected, no items should be included
       items = [];
     }
+    
+    // Filter out items with ANY undefined values
+    items = items.filter(item => {
+      return item.impact !== 'undefined' && 
+             item.effort !== 'undefined' && 
+             item.before !== 'undefined' && 
+             item.maturity !== 'undefined' && 
+             item.goal !== 'undefined' &&
+             item.before !== undefined && 
+             item.maturity !== undefined && 
+             item.goal !== undefined;
+    });
     
     if (items.length === 0) return 0;
 
@@ -704,7 +983,7 @@ class SecurityMaturityDashboard {
       this.charts[tag].destroy();
     }
 
-    // Color schemes for different tags - using same colors for both
+    // Color schemes for different tags
     const colorSchemes = {
       aws: {
         before: { bg: 'rgba(54, 162, 235, 0.2)', border: 'rgba(54, 162, 235, 0.8)' },
@@ -798,10 +1077,23 @@ class SecurityMaturityDashboard {
 
   createOptionElements(options, selectedValue, valueKey = null, useIndices = false) {
     return options.map((option, index) => {
+      // Handle 'undefined' option specially
+      if (option === 'undefined') {
+        const selected = selectedValue === 'undefined' ? ' selected' : '';
+        return `<option value="undefined"${selected}>Undefined</option>`;
+      }
+      
       // Use indices when explicitly requested (for maturity levels), otherwise use string values for string arrays
-      const value = valueKey ? option[valueKey] : 
-                   useIndices ? index : 
-                   (typeof option === 'string' ? option : index);
+      let value;
+      if (valueKey) {
+        value = option[valueKey];
+      } else if (useIndices) {
+        // For maturity levels: first real option (after 'undefined') should be 0
+        value = index - 1; // 'undefined' is at index 0, so 'No adoption' at index 1 becomes value 0
+      } else {
+        value = typeof option === 'string' ? option : index;
+      }
+      
       const label = typeof option === 'string' ? option : option.label || option;
       const selected = selectedValue === value ? ' selected' : '';
       return `<option value="${value}"${selected}>${label}</option>`;
@@ -898,13 +1190,13 @@ class SecurityMaturityDashboard {
         <table class="table-fixed w-full border-collapse mb-8">
           <thead>
             <tr class="bg-gray-800">
-              <th class="border border-gray-600 p-3 text-left w-[40%]">Security Measure</th>
-              <th class="border border-gray-600 p-3 text-left w-[20%]">MITRE ATT&CK TTP</th>
-              <th class="border border-gray-600 p-3 text-left w-[8%]">Impact</th>
-              <th class="border border-gray-600 p-3 text-left w-[8%]">Effort</th>
-              <th class="border border-gray-600 p-3 text-left w-[8%]">Before</th>
-              <th class="border border-gray-600 p-3 text-left w-[8%]">Now</th>
-              <th class="border border-gray-600 p-3 text-left w-[8%]">Goal</th>
+              <th class="border border-gray-600 p-3 text-left w-[32%]">Security Measure</th>
+              <th class="border border-gray-600 p-3 text-left w-[23%]">MITRE ATT&CK TTP</th>
+              <th class="border border-gray-600 p-3 text-left w-[9%]">Impact</th>
+              <th class="border border-gray-600 p-3 text-left w-[9%]">Effort</th>
+              <th class="border border-gray-600 p-3 text-left w-[9%]">Before</th>
+              <th class="border border-gray-600 p-3 text-left w-[9%]">Now</th>
+              <th class="border border-gray-600 p-3 text-left w-[9%]">Goal</th>
             </tr>
           </thead>
           <tbody>
@@ -928,15 +1220,18 @@ class SecurityMaturityDashboard {
           // Find original action index for data binding
           const originalActionIndex = (control.action_items || []).indexOf(actionItem);
           
-          // Ensure default values
-          actionItem.before = actionItem.before ?? 0;
-          actionItem.maturity = actionItem.maturity ?? 0;
-          actionItem.goal = actionItem.goal ?? 0;
-          actionItem.impact = actionItem.impact ?? 'low';
-          actionItem.effort = actionItem.effort ?? 'low';
+          // Check if this measure has undefined values
+          const hasUndefinedValues = actionItem.impact === 'undefined' || 
+                                   actionItem.effort === 'undefined' || 
+                                   actionItem.before === 'undefined' || 
+                                   actionItem.maturity === 'undefined' || 
+                                   actionItem.goal === 'undefined';
+          
+          const rowClass = hasUndefinedValues ? 'hover:bg-gray-800 transition-colors undefined-measure' : 'hover:bg-gray-800 transition-colors';
 
           // Display tags
           const tagsDisplay = actionItem.tags ? actionItem.tags : '';
+          const measureId = actionItem.measure_id || 'No ID';
 
           // Prepare measure text with optional tooltip
           let measureContent = actionItem.measure || 'No measure specified';
@@ -950,12 +1245,14 @@ class SecurityMaturityDashboard {
           }
 
           html += `
-            <tr class="hover:bg-gray-800 transition-colors">
+            <tr class="${rowClass}">
               <td class="border border-gray-600 p-3 break-words">
                 ${measureContent}
+                <div class="text-xs text-gray-500 mt-1">ID: ${measureId}</div>
                 ${tagsDisplay ? `<div class="text-xs text-cyan-400 mt-1">Tag: ${tagsDisplay}</div>` : ''}
+                ${hasUndefinedValues ? '<div class="text-xs text-yellow-400 mt-1">⚠️ Undefined values - excluded from calculations</div>' : ''}
               </td>
-              <td class="border border-gray-600 p-3 break-words">${this.escapeHtml(actionItem.mitre || 'N/A')}</td>
+              <td class="border border-gray-600 p-3 break-words">${this.createMitreLink(actionItem.mitre)}</td>
               <td class="border border-gray-600 p-3">
                 <select 
                   data-di="${domainIndex}" 
@@ -964,7 +1261,7 @@ class SecurityMaturityDashboard {
                   data-prop="impact" 
                   class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 >
-                  ${this.createOptionElements(['low', 'medium', 'high'], actionItem.impact)}
+                  ${this.createOptionElements(['undefined', 'low', 'medium', 'high'], actionItem.impact)}
                 </select>
               </td>
               <td class="border border-gray-600 p-3">
@@ -975,7 +1272,7 @@ class SecurityMaturityDashboard {
                   data-prop="effort" 
                   class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 >
-                  ${this.createOptionElements(['low', 'medium', 'high'], actionItem.effort)}
+                  ${this.createOptionElements(['undefined', 'low', 'medium', 'high'], actionItem.effort)}
                 </select>
               </td>
               <td class="border border-gray-600 p-3">
@@ -986,7 +1283,7 @@ class SecurityMaturityDashboard {
                   data-prop="before" 
                   class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 >
-                  ${this.createOptionElements(this.MATURITY_LEVELS, actionItem.before, null, true)}
+                  ${this.createOptionElements(['undefined', ...this.MATURITY_LEVELS], actionItem.before, null, true)}
                 </select>
               </td>
               <td class="border border-gray-600 p-3">
@@ -997,7 +1294,7 @@ class SecurityMaturityDashboard {
                   data-prop="maturity" 
                   class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 >
-                  ${this.createOptionElements(this.MATURITY_LEVELS, actionItem.maturity, null, true)}
+                  ${this.createOptionElements(['undefined', ...this.MATURITY_LEVELS], actionItem.maturity, null, true)}
                 </select>
               </td>
               <td class="border border-gray-600 p-3">
@@ -1008,7 +1305,7 @@ class SecurityMaturityDashboard {
                   data-prop="goal" 
                   class="bg-gray-700 text-gray-200 p-2 rounded w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none"
                 >
-                  ${this.createOptionElements(this.MATURITY_LEVELS, actionItem.goal, null, true)}
+                  ${this.createOptionElements(['undefined', ...this.MATURITY_LEVELS], actionItem.goal, null, true)}
                 </select>
               </td>
             </tr>
@@ -1079,6 +1376,28 @@ class SecurityMaturityDashboard {
       tooltipText.addEventListener('mouseenter', cancelHide);
       tooltipText.addEventListener('mouseleave', hideTooltip);
     });
+  }
+
+  // Transform MITRE value to clickable link
+  createMitreLink(mitreValue) {
+    if (!mitreValue || mitreValue === 'undefined' || mitreValue === 'N/A') {
+      return this.escapeHtml(mitreValue || 'N/A');
+    }
+    
+    // Parse MITRE value: tactic:technique/subtechnique
+    const parts = mitreValue.split(':');
+    if (parts.length !== 2) {
+      // Fallback for malformed MITRE values
+      const sanitizedMitre = mitreValue.replace(/[:/]/g, '_');
+      const linkPath = `https://thinkcnap.org/mitre/${sanitizedMitre}.html`;
+      return `<a href="${linkPath}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">${this.escapeHtml(mitreValue)}</a>`;
+    }
+    
+    const tactic = parts[0].trim();
+    const technique = parts[1].trim().replace(/\//g, '_'); // Replace / with _
+    const linkPath = `https://thinkcnap.org/mitre/${tactic}/${technique}.html`
+    
+    return `<a href="${linkPath}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">${this.escapeHtml(mitreValue)}</a>`;
   }
 
   escapeHtml(text) {
@@ -1163,10 +1482,29 @@ class SecurityMaturityDashboard {
     if (['impact', 'effort'].includes(prop)) {
       actionItem[prop] = element.value;
     } else {
-      actionItem[prop] = parseInt(element.value);
+      if (element.value === 'undefined') {
+        actionItem[prop] = 'undefined';
+      } else {
+        actionItem[prop] = parseInt(element.value);
+      }
     }
 
     this.hasUnsavedChanges = true;
+    
+    // Update row styling based on undefined values
+    const row = element.closest('tr');
+    const hasUndefinedValues = actionItem.impact === 'undefined' || 
+                             actionItem.effort === 'undefined' || 
+                             actionItem.before === 'undefined' || 
+                             actionItem.maturity === 'undefined' || 
+                             actionItem.goal === 'undefined';
+    
+    if (hasUndefinedValues) {
+      row.classList.add('undefined-measure');
+    } else {
+      row.classList.remove('undefined-measure');
+    }
+    
     this.updateDomainScores(domainIndex);
     
     // Update chart if dashboard is visible
@@ -1184,9 +1522,6 @@ class SecurityMaturityDashboard {
     const noTagsSelected = this.selectedTags.length === 0;
     
     if (noTagsSelected) {
-      // No tags selected - update message
-      const messageElement = document.getElementById(`domain-before-${domainIndex}`);
-      if (messageElement) messageElement.textContent = 'No tags selected - please select AWS and/or Kubernetes tags to view maturity scores';
       return;
     }
 
@@ -1220,35 +1555,6 @@ class SecurityMaturityDashboard {
       if (beforeElement) beforeElement.textContent = `Before: ${beforeScore} / 3`;
       if (nowElement) nowElement.textContent = `Now: ${nowScore} / 3`;
       if (goalElement) goalElement.textContent = `Goal: ${goalScore} / 3`;
-    }
-  }
-
-  refreshCurrentPane() {
-    // Get currently active tab
-    const activeTab = document.querySelector('[id^="tab-"].border-b-2');
-    if (!activeTab) return;
-    
-    const tabId = activeTab.id;
-    const slugName = tabId.replace('tab-', '');
-    
-    if (slugName === 'dashboard') {
-      // Dashboard is already refreshed by drawCharts
-      return;
-    }
-    
-    // Find domain and recreate its pane
-    const domains = this.config.security_domains || [];
-    const domainIndex = domains.findIndex(domain => this.createSlug(domain.name) === slugName);
-    
-    if (domainIndex !== -1) {
-      const domain = domains[domainIndex];
-      const oldPane = document.getElementById(`pane-${slugName}`);
-      const newPane = this.createDomainPane(domain, domainIndex);
-      
-      if (oldPane && oldPane.parentNode) {
-        oldPane.parentNode.replaceChild(newPane, oldPane);
-        newPane.classList.remove('hidden'); // Keep it visible if it was active
-      }
     }
   }
 
@@ -1291,7 +1597,7 @@ class SecurityMaturityDashboard {
       <div class="mb-6">
         <!-- Tag Selection -->
         <div class="mb-6 p-4 bg-gray-800 rounded-lg">
-          <p class="text-cyan-300 mb-3 font-semibold">Select Tags to Display:</p>
+
           <div class="flex space-x-6">
             <label class="flex items-center space-x-2 cursor-pointer">
               <input type="checkbox" id="tag-aws" class="tag-filter" value="aws" checked>
