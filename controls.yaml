@@ -862,10 +862,3 @@ security_domains:
               Consider Internal Developer Portal for this like Backstage from Spotify.
             mitre: undefined
             tags: aws
-          - measure_id: SEC11-BP08-002
-            measure: >-
-              MITIGATION: Build a program that embeds security ownership in workload teams
-            comment: >- 
-              Consider Internal Developer Portal for this like Backstage from Spotify.
-            mitre: undefined
-            tags: aws
