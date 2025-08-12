@@ -505,7 +505,19 @@ measures:
     goal: 0
   SEC10-BP06-001:
     impact: high
+    effort: low
+    before: 0
+    maturity: 0
+    goal: 0
+  SEC10-BP06-002:
+    impact: high
     effort: medium
+    before: 0
+    maturity: 0
+    goal: 0
+  SEC10-BP06-003:
+    impact: high
+    effort: high
     before: 0
     maturity: 0
     goal: 0
