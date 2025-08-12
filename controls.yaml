@@ -50,7 +50,7 @@ security_domains:
             measure: >-
               DETECTION: Implement root user activity monitoring
             comment: >-
-              Configure root user usage monitoring via AWS CloudTrail logs or AWS GuardDuty  findings
+              Configure root user usage monitoring via AWS CloudTrail logs or AWS GuardDuty findings
               Policy:IAMUser/RootCredentialUsage and Policy:IAMUser/ShortTermRootCredentialUsage
             mitre: undefined
             tags: aws
@@ -300,12 +300,12 @@ security_domains:
         action_items:
           - measure_id: SEC03-BP07-001
             measure: >-
-              MITIGATION: Analyze public and cross-account access
+              DETECTION: Analyze public and cross-account access
             comment: >-
               Deploy AWS IAM Access Analyzer and configure external access analyzer. Used delegated administrator AWS
               Account. This will allow you to detect public resources and cross-account access outside the trusted zone
               (your AWS Account or AWS Organization)
-            mitre: Persistance:Account Manipulation/AdditionalCloudRoles
+            mitre: Persistance:AccountManipulation
             tags: aws
       - code: SEC03-BP08
         text: Share resources securely within your organization
@@ -549,14 +549,13 @@ security_domains:
               Use AWS Systems Manager or Ansible/Chef/Puppet. Implement strict
               security controls regarding access management to configuration
               management tools.
-            mitre: Execution:CloudAdministrationCommand
+            mitre: undefined
             tags: aws
           - measure_id: SEC06-BP03-002
             measure: >-
               DETECTION: Detect command execution on EC2 instances
             comment: >-
-              Anaylyze AWS CloudTrail logs to detect command execution on EC2 instances via AWS Systems Manager.
-              Configure alerts for suspicious command execution.
+              Anaylyze AWS CloudTrail logs to detect suspicious command execution on EC2 instances via AWS Systems Manager.
             mitre: Execution:CloudAdministrationCommand
             tags: aws
       - code: SEC06-BP04
@@ -569,7 +568,7 @@ security_domains:
               Consider osquery to validate software integrity or Wazuh File Integrity Monitoring (FIM).
               <br>
               <br>
-              Check software packages signatures to validate software integrity.
+              Check software packages signatures during the installation process to validate software integrity.
               <br>
               <br>
               EBPF-based FIM like Falco or Tetragon can be used to detect suspicious file changes.
@@ -723,8 +722,7 @@ security_domains:
         action_items:
           - measure_id: SEC10-BP02-001
             measure: >-
-              DETECTION: Develop incident management plans.  Use AWS Security Orchestration, Automation, and Response
-              (SOAR)
+              DETECTION: Develop incident management plans
             mitre: undefined
             tags: aws
       - code: SEC10-BP03
@@ -766,7 +764,17 @@ security_domains:
         action_items:
           - measure_id: SEC10-BP06-001
             measure: >-
-              MITIGATION: Pre-deploy tools like Case Management System, Sandbox, etc.
+              MITIGATION: Implement Case Management System to track the incidents
+            mitre: undefined
+            tags: aws
+          - measure_id: SEC10-BP06-002
+            measure: >-
+              MITIGATION: Implement Sandbox to test malicious files
+            mitre: undefined
+            tags: aws
+          - measure_id: SEC10-BP06-003
+            measure: >-
+              MITIGATION: Implement Security Orchestration, Automation, and Response (SOAR)
             mitre: undefined
             tags: aws
       - code: SEC10-BP07
