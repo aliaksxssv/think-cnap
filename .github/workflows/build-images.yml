@@ -11,9 +11,6 @@ on:
       - '**/*.js'
       - '**/*.html'
       - '**/*.css'
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 env:
@@ -74,7 +71,7 @@ jobs:
         with:
           context: ./think-cnap
           file: ./think-cnap/docker/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta-app.outputs.tags }}
           labels: ${{ steps.meta-app.outputs.labels }}
           cache-from: type=gha
@@ -120,7 +117,7 @@ jobs:
         with:
           context: ./think-cnap
           file: ./think-cnap/docker/Dockerfile.db
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta-db.outputs.tags }}
           labels: ${{ steps.meta-db.outputs.labels }}
           cache-from: type=gha
