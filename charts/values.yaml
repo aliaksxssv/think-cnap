@@ -96,3 +96,16 @@ env:
   PORT: "8080"
   # Database connection variables are set automatically from database.* values
   # DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD are configured in deployment.yaml
+
+# Secrets for external services
+secrets:
+  # Resend API key for email sending (password reset, email verification)
+  # REQUIRED: Set resendApiKey or use existingSecret
+  resendApiKey: ""  # REQUIRED: Must be set!
+  
+  # Google OAuth Client ID for authentication
+  # REQUIRED: Set googleClientId or use existingSecret
+  googleClientId: ""  # REQUIRED: Must be set!
+  
+  # OR use existing Kubernetes secret (recommended for production)
+  # existingSecret: "think-cnap-secrets"  # Secret must have 'resendApiKey' and 'googleClientId' keys

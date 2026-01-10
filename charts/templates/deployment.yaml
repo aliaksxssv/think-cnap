@@ -59,6 +59,16 @@ spec:
                 secretKeyRef:
                   name: {{ if .Values.database.existingSecret }}{{ .Values.database.existingSecret }}{{ else }}{{ include "think-cnap.fullname" . }}-db-secret{{ end }}
                   key: password
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.secrets.existingSecret }}{{ .Values.secrets.existingSecret }}{{ else }}{{ include "think-cnap.fullname" . }}-secrets{{ end }}
+                  key: resendApiKey
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.secrets.existingSecret }}{{ .Values.secrets.existingSecret }}{{ else }}{{ include "think-cnap.fullname" . }}-secrets{{ end }}
+                  key: googleClientId
           resources:
             {{- toYaml .Values.resources.app | nindent 12 }}
           securityContext:
