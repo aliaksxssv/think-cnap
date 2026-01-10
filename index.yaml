@@ -3,10 +3,10 @@ entries:
   think-cnap:
   - apiVersion: v2
     appVersion: 1.0.0
-    created: "2026-01-10T19:58:41.379275435Z"
+    created: "2026-01-10T20:31:35.908944237Z"
     description: A Helm chart for ThinkCNAP - Cloud Native Application Security Maturity
       Dashboard
-    digest: 5358da139bbf16b1f62cbd2ffc1315dec1cf96ba99bf30168ef3cb7849b119ae
+    digest: 30406f335d61308acc18f6a95aa5c25801f64a8683b655873dcb93846fc3d89e
     home: https://github.com/aliaksxssv/think-cnap
     keywords:
     - security
@@ -19,4 +19,4 @@ entries:
     urls:
     - https://aliaksxssv.github.io/think-cnap/.cr-release-packages/think-cnap-0.1.0.tgz
     version: 0.1.0
-generated: "2026-01-10T19:58:41.378633573Z"
+generated: "2026-01-10T20:31:35.908303515Z"
