@@ -63,3 +63,5 @@ jobs:
           git add .
           git commit -m "Update Helm chart index [skip ci]" || exit 0
           git push origin gh-pages
+
+          
