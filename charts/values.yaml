@@ -110,3 +110,4 @@ secrets:
   # OR use existing Kubernetes secret (recommended for production)
   # existingSecret: "think-cnap-secrets"  # Secret must have 'resendApiKey' and 'googleClientId' keys
   
+  
