@@ -1,0 +1,3109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>ThinkCNAP - Maturity Assessment & Attack Simulation Platform</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <!-- Google Client ID from environment variable -->
+  <meta name="google-client-id" content="{{GOOGLE_CLIENT_ID}}">
+  <script>
+    // Set Google Client ID from environment variable
+    window.GOOGLE_CLIENT_ID = '{{GOOGLE_CLIENT_ID}}' || '314381672297-eu9jidtaeil3404mbfv11031jncugv8q.apps.googleusercontent.com';
+  </script>
+  
+  <!-- Spider web favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%231f2937'/><text x='8' y='12' font-size='12' text-anchor='middle' fill='%2322d3ee'>🕸️</text></svg>">
+  <link rel="shortcut icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%231f2937'/><text x='8' y='12' font-size='12' text-anchor='middle' fill='%2322d3ee'>🕸️</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' fill='%231f2937'/><text x='90' y='120' font-size='120' text-anchor='middle' fill='%2322d3ee'>🕸️</text></svg>">
+  <!-- Device detection info -->
+  <script>
+    console.log('🖥️ Desktop version loading...');
+    console.log('📱 User-Agent:', navigator.userAgent);
+  </script>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://accounts.google.com/gsi/client"></script>
+  <script src="auth.js?v=2.1"></script>
+  
+  <script>
+    // Generate random values for radar chart logo ensuring proper nesting
+    function generateRadarLogoValues() {
+      const centerX = 50;
+      const centerY = 50;
+      const maxRadius = 45;
+      const numAxes = 8;
+      
+      // Generate random values for each axis (0-1 scale)
+      // Blue (innermost): 0.15 to 0.35
+      // Red (middle): 0.40 to 0.65, but must be > blue
+      // Yellow (outermost): 0.70 to 0.95, but must be > red
+      
+      const blueValues = [];
+      const redValues = [];
+      const yellowValues = [];
+      
+      for (let i = 0; i < numAxes; i++) {
+        // Generate blue value with higher deviation (0.10 to 0.40)
+        const blue = 0.10 + Math.random() * 0.30;
+        
+        // Generate red value (must be > blue) with higher deviation
+        // Allow wider range: 0.35 to 0.75, but must be > blue + minimum gap
+        const minRed = Math.max(blue + 0.08, 0.35);
+        const red = minRed + Math.random() * (0.75 - minRed);
+        
+        // Generate yellow value (must be > red) with higher deviation
+        // Allow wider range: 0.65 to 0.98, but must be > red + minimum gap
+        const minYellow = Math.max(red + 0.08, 0.65);
+        const yellow = minYellow + Math.random() * (0.98 - minYellow);
+        
+        blueValues.push(blue);
+        redValues.push(red);
+        yellowValues.push(yellow);
+      }
+      
+      // Convert to coordinates for 8 axes (45 degrees apart)
+      function getPoint(angle, radius) {
+        const rad = (angle * Math.PI) / 180;
+        const x = centerX + radius * Math.cos(rad);
+        const y = centerY - radius * Math.sin(rad); // Negative because SVG Y increases downward
+        return { x, y };
+      }
+      
+      const bluePoints = [];
+      const redPoints = [];
+      const yellowPoints = [];
+      
+      for (let i = 0; i < numAxes; i++) {
+        const angle = i * 45; // 0, 45, 90, 135, 180, 225, 270, 315
+        
+        const blueRadius = blueValues[i] * maxRadius;
+        const redRadius = redValues[i] * maxRadius;
+        const yellowRadius = yellowValues[i] * maxRadius;
+        
+        bluePoints.push(getPoint(angle, blueRadius));
+        redPoints.push(getPoint(angle, redRadius));
+        yellowPoints.push(getPoint(angle, yellowRadius));
+      }
+      
+      return { bluePoints, redPoints, yellowPoints };
+    }
+    
+    // Update radar chart logo with random values
+    function updateRadarChartLogo() {
+      const { bluePoints, redPoints, yellowPoints } = generateRadarLogoValues();
+      
+      // Convert points to polygon string
+      function pointsToString(points) {
+        return points.map(p => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
+      }
+      
+      // Update polygons
+      const yellowPoly = document.getElementById('header-yellow-polygon');
+      const redPoly = document.getElementById('header-red-polygon');
+      const bluePoly = document.getElementById('header-blue-polygon');
+      
+      if (yellowPoly) yellowPoly.setAttribute('points', pointsToString(yellowPoints));
+      if (redPoly) redPoly.setAttribute('points', pointsToString(redPoints));
+      if (bluePoly) bluePoly.setAttribute('points', pointsToString(bluePoints));
+      
+      // Update vertices
+      yellowPoints.forEach((point, i) => {
+        const circle = document.getElementById(`header-yellow-vertex-${i}`);
+        if (circle) {
+          circle.setAttribute('cx', point.x);
+          circle.setAttribute('cy', point.y);
+        }
+      });
+      
+      redPoints.forEach((point, i) => {
+        const circle = document.getElementById(`header-red-vertex-${i}`);
+        if (circle) {
+          circle.setAttribute('cx', point.x);
+          circle.setAttribute('cy', point.y);
+        }
+      });
+      
+      bluePoints.forEach((point, i) => {
+        const circle = document.getElementById(`header-blue-vertex-${i}`);
+        if (circle) {
+          circle.setAttribute('cx', point.x);
+          circle.setAttribute('cy', point.y);
+        }
+      });
+    }
+    
+    // Initialize logo on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', updateRadarChartLogo);
+    } else {
+      updateRadarChartLogo();
+    }
+  </script>
+  
+  <style>
+    /* Utility Classes */
+    .hidden {
+      display: none !important;
+    }
+    
+    /* Custom Navigation Color */
+    .nav-inactive {
+      color: rgb(156 163 175 / var(--tw-text-opacity, 1));
+    }
+    
+    /* Simplified Chart Styles */
+    .main-content {
+      height: calc(100vh - 300px); /* Fixed height after header, nav, radio buttons, and chart header */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+      position: relative;
+      margin: 0 auto; /* Center the content */
+      max-width: 1400px; /* Reasonable max width */
+    }
+    
+    .chart {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-width: 400px;
+      min-height: 400px;
+    }
+    
+    .chart canvas {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    
+    /* Prevent layout shifts during chart loading */
+    .chart {
+      contain: layout;
+    }
+    
+    
+    .chart-legend {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 10;
+      padding-top: 12px;
+    }
+    
+    
+    /* Comment tooltip styles */
+    .comment-tooltip {
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 2px;
+      padding: 16px;
+      background-color: #374151;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      z-index: 1000;
+      min-width: 600px;
+      max-width: 900px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #e5e7eb;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
+      pointer-events: none;
+    }
+    
+    /* Create a hover bridge between text and tooltip */
+    .comment-tooltip::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: transparent;
+    }
+    
+    .comment-hover-container:hover .comment-tooltip {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    
+    /* Make text selectable in tooltip */
+    .select-text {
+      user-select: text;
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+    }
+    
+    .comment-tooltip::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 16px;
+      width: 8px;
+      height: 8px;
+      background-color: #1f2937;
+      border-left: 1px solid #4b5563;
+      border-top: 1px solid #4b5563;
+      transform: rotate(45deg);
+    }
+    
+    /* Ensure table cells can show tooltips */
+    .controls-table td {
+      position: relative;
+      overflow: visible;
+    }
+    
+    .chart-canvas-container {
+      margin-bottom: -115px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+    }
+    
+    .chart-wrapper {
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .chart-legend {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      font-size: 11px;
+      color: #22D3EE;
+      position: relative;
+      z-index: 10;
+      width: 100%;
+    }
+    
+    /* Chart wrapper positioning */
+    .chart-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    
+    /* Alignment classes for chart axis alignment */
+    .chart-header-aligned,
+    .chart-legend-aligned {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    .chart-header-aligned {
+      top: 0;
+    }
+    
+    .chart-legend-aligned {
+      bottom: 0;
+    }
+
+    /* Ensure radio buttons are clickable and styled consistently */
+    .tag-filter {
+      pointer-events: auto !important;
+      z-index: 1000 !important;
+      position: relative !important;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #6b7280;
+      border-radius: 4px;
+      background-color: transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .tag-filter:checked {
+      border-color: #22d3ee;
+      background-color: #22d3ee;
+    }
+    
+    .tag-filter:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #1f2937;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1;
+    }
+    
+    .tag-filter:hover {
+      border-color: #22d3ee;
+    }
+
+    /* Ensure dashboard fits in viewport */
+    #pane-dashboard {
+      height: calc(100vh - 200px); /* Account for header, nav, and radio buttons */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .legend-color-box {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+      width: 250px;
+      background-color: #1f2937;
+      border-right: 1px solid #374151;
+      transition: width 0.3s ease;
+      overflow-y: auto;
+      overflow-x: hidden;
+      flex-shrink: 0;
+      height: calc(100vh - 300px);
+      position: relative;
+    }
+    
+    .sidebar.collapsed {
+      width: 60px;
+    }
+    
+    .sidebar-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: #1f2937;
+      border: none;
+      border-left: 1px solid #374151;
+      border-bottom: 1px solid #374151;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0.75rem;
+      border-radius: 0;
+      transition: all 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+    }
+    
+    .sidebar-toggle:hover {
+      background-color: #374151;
+      color: #22d3ee;
+    }
+    
+    .sidebar-menu {
+      padding: 0.5rem 0;
+      padding-top: 0.5rem;
+      margin-top: 40px;
+    }
+    
+    .menu-section {
+      margin-bottom: 0.5rem;
+    }
+    
+    .menu-section-title {
+      padding: 0.75rem 1rem;
+      color: #22d3ee;
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .sidebar.collapsed .menu-section-title {
+      justify-content: center;
+      padding: 0.75rem;
+    }
+    
+    .sidebar.collapsed .menu-section-title span {
+      display: none;
+    }
+    
+    .menu-item {
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      color: #d1d5db;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .menu-item:hover {
+      background-color: #374151;
+      color: #22d3ee;
+    }
+    
+    .menu-item.active {
+      background-color: #1e3a5f;
+      color: #22d3ee;
+      border-left: 3px solid #22d3ee;
+    }
+    
+    .sidebar.collapsed .menu-item {
+      padding: 0.75rem;
+      justify-content: center;
+    }
+    
+    .sidebar.collapsed .menu-item span {
+      display: none;
+    }
+    
+    .main-layout {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - 25px);
+    }
+    
+    .content-wrapper {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+    
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-width: 0;
+    }
+
+  </style>
+</head>
+  
+<body class="bg-gray-900 text-gray-100 min-h-screen" style="padding-top: 25px; padding-left: 40px; padding-right: 40px; padding-bottom: 0px;">
+  <!-- Authentication Modal -->
+  <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-gray-800 p-8 rounded-lg max-w-md w-full mx-4">
+      <h2 class="text-2xl font-bold text-cyan-300 mb-6 text-center">Welcome to ThinkCNAP</h2>
+      
+      <div id="auth-error" class="hidden bg-red-600 text-white p-3 rounded mb-4"></div>
+      
+      <!-- Auth Tabs -->
+      <div class="flex mb-6">
+        <button id="signin-tab" onclick="switchAuthTab('signin')" 
+                class="flex-1 py-2 px-4 bg-cyan-600 text-white rounded-l-lg">
+          Sign In
+        </button>
+        <button id="signup-tab" onclick="switchAuthTab('signup')" 
+                class="flex-1 py-2 px-4 bg-gray-600 text-white rounded-r-lg">
+          Sign Up
+        </button>
+        </div>
+        
+      <!-- Sign In Form -->
+      <div id="signin-form">
+        <form onsubmit="handleEmailAuth(event, 'signin')">
+          <div class="mb-4">
+            <label class="block text-gray-300 text-sm font-bold mb-2">Email</label>
+            <input type="email" id="signin-email" required
+                   class="w-full px-3 py-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          </div>
+          <div class="mb-6">
+            <label class="block text-gray-300 text-sm font-bold mb-2">Password</label>
+            <input type="password" id="signin-password" required
+                   class="w-full px-3 py-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500">
+          </div>
+          <button type="submit" 
+                  class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded mb-4">
+            Sign In
+          </button>
+        </form>
+        
+        <div class="text-center">
+          <button type="button" onclick="showForgotPasswordModal()" 
+                  class="text-cyan-400 hover:text-cyan-300 text-sm underline">
+            Forgot Password?
+          </button>
+        </div>
+      </div>
+
+      <!-- Sign Up Form -->
+      <div id="signup-form" class="hidden">
+        <form onsubmit="handleEmailAuth(event, 'signup')">
+          <div class="mb-4">
+            <label class="block text-gray-300 text-sm font-bold mb-2">Email</label>
+            <input type="email" id="signup-email" required
+                   class="w-full px-3 py-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+          <div class="mb-6">
+            <label class="block text-gray-300 text-sm font-bold mb-2">Password</label>
+            <input type="password" id="signup-password" required minlength="6"
+                   class="w-full px-3 py-2 bg-gray-700 text-white rounded focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            </div>
+          <button type="submit" 
+                  class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded mb-4">
+            Sign Up
+          </button>
+        </form>
+            </div>
+      
+      <!-- Google Sign In -->
+      <div class="mb-4">
+        <div class="text-center text-gray-400 mb-3">or</div>
+        <div id="google-signin-button" class="flex justify-center"></div>
+        <!-- Fallback Google Sign-In Button -->
+        <div id="google-signin-fallback" class="hidden flex flex-col items-center mt-2 space-y-2">
+          <div class="text-center text-sm text-yellow-400 mb-2 p-2 bg-yellow-900/20 rounded">
+            ⚠️ Google Sign-In is currently unavailable
+          </div>
+          <button onclick="triggerGoogleSignIn()" 
+                  class="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+            <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Try Google Sign-In Anyway
+          </button>
+          <div class="text-xs text-gray-400 text-center">
+            <p>Possible causes:</p>
+            <p>• Ad blocker blocking Google services</p>
+            <p>• Network/firewall restrictions</p>
+            <p>• Browser extensions interfering</p>
+            <p class="mt-1">Try: Incognito mode or disable extensions</p>
+          </div>
+          <button onclick="debugGoogleOAuth()" 
+                  class="text-xs text-gray-400 hover:text-gray-600 underline">
+            Debug Info (check console)
+          </button>
+        </div>
+      </div>
+      
+      <!-- Email Verification Notice -->
+      <div id="verification-notice" class="hidden mb-4 p-4 bg-blue-800 rounded">
+        <h3 class="text-lg font-semibold text-blue-300 mb-2">Email Verification Required</h3>
+        <p class="text-blue-200 text-sm mb-3" id="verification-message">
+          Please check your email and click the verification link to activate your account.
+        </p>
+
+        <div class="flex space-x-3">
+          <button onclick="resendVerificationEmail()" 
+                  class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded">
+            Resend Email
+          </button>
+          <a href="/api/dev-links" target="_blank"
+             class="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-sm rounded no-underline">
+            Dev Links
+          </a>
+          <button onclick="hideVerificationNotice()" 
+                  class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded">
+            Close
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="main-content" class="hidden main-layout">
+      <!-- Header Block -->
+      <header class="text-center mb-4">
+        <div class="flex justify-between items-center mb-2">
+            <div class="flex items-center gap-5">
+              <!-- Radar Chart Logo -->
+              <svg class="w-20 h-20 flex-shrink-0" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <!-- Background circle (optional, for better visibility) -->
+                <circle cx="50" cy="50" r="48" fill="#111827"/>
+                
+                <!-- Grid lines - 8 axes (lighter) -->
+                <g stroke="#9ca3af" stroke-width="0.5" opacity="0.9">
+                  <line x1="50" y1="50" x2="50" y2="5" />
+                  <line x1="50" y1="50" x2="85.36" y2="14.64" />
+                  <line x1="50" y1="50" x2="95" y2="50" />
+                  <line x1="50" y1="50" x2="85.36" y2="85.36" />
+                  <line x1="50" y1="50" x2="50" y2="95" />
+                  <line x1="50" y1="50" x2="14.64" y2="85.36" />
+                  <line x1="50" y1="50" x2="5" y2="50" />
+                  <line x1="50" y1="50" x2="14.64" y2="14.64" />
+                </g>
+                
+                <!-- Outermost polygon (Yellow/Orange) - largest values -->
+                <polygon 
+                  id="header-yellow-polygon"
+                  points="50,10 85.36,14.64 95,50 85.36,85.36 50,90 14.64,85.36 5,50 14.64,14.64"
+                  fill="#FFCC66"
+                  fill-opacity="0.4"
+                  stroke="#FFCC66"
+                  stroke-width="1.5"
+                />
+                <!-- Yellow polygon vertices -->
+                <circle id="header-yellow-vertex-0" cx="50" cy="10" r="2" fill="#FFCC66" />
+                <circle id="header-yellow-vertex-1" cx="85.36" cy="14.64" r="2" fill="#FFCC66" />
+                <circle id="header-yellow-vertex-2" cx="95" cy="50" r="2" fill="#FFCC66" />
+                <circle id="header-yellow-vertex-3" cx="85.36" cy="85.36" r="2" fill="#FFCC66" />
+                <circle id="header-yellow-vertex-4" cx="50" cy="90" r="2" fill="#FFCC66" />
+                <circle id="header-yellow-vertex-5" cx="14.64" cy="85.36" r="2" fill="#FFCC66" />
+                <circle id="header-yellow-vertex-6" cx="5" cy="50" r="2" fill="#FFCC66" />
+                <circle id="header-yellow-vertex-7" cx="14.64" cy="14.64" r="2" fill="#FFCC66" />
+                
+                <!-- Middle polygon (Red/Pink) - medium values -->
+                <polygon 
+                  id="header-red-polygon"
+                  points="50,25 67.68,28.32 75,50 67.68,71.68 50,75 32.32,71.68 25,50 32.32,28.32"
+                  fill="#E67399"
+                  fill-opacity="0.4"
+                  stroke="#E67399"
+                  stroke-width="1.5"
+                />
+                <!-- Red polygon vertices -->
+                <circle id="header-red-vertex-0" cx="50" cy="25" r="2" fill="#E67399" />
+                <circle id="header-red-vertex-1" cx="67.68" cy="28.32" r="2" fill="#E67399" />
+                <circle id="header-red-vertex-2" cx="75" cy="50" r="2" fill="#E67399" />
+                <circle id="header-red-vertex-3" cx="67.68" cy="71.68" r="2" fill="#E67399" />
+                <circle id="header-red-vertex-4" cx="50" cy="75" r="2" fill="#E67399" />
+                <circle id="header-red-vertex-5" cx="32.32" cy="71.68" r="2" fill="#E67399" />
+                <circle id="header-red-vertex-6" cx="25" cy="50" r="2" fill="#E67399" />
+                <circle id="header-red-vertex-7" cx="32.32" cy="28.32" r="2" fill="#E67399" />
+                
+                <!-- Innermost polygon (Blue) - smallest values -->
+                <polygon 
+                  id="header-blue-polygon"
+                  points="50,40 53.54,40.59 55,50 53.54,59.41 50,60 46.46,59.41 45,50 46.46,40.59"
+                  fill="#66B2FF"
+                  fill-opacity="0.4"
+                  stroke="#66B2FF"
+                  stroke-width="1.5"
+                />
+                <!-- Blue polygon vertices -->
+                <circle id="header-blue-vertex-0" cx="50" cy="40" r="2" fill="#66B2FF" />
+                <circle id="header-blue-vertex-1" cx="53.54" cy="40.59" r="2" fill="#66B2FF" />
+                <circle id="header-blue-vertex-2" cx="55" cy="50" r="2" fill="#66B2FF" />
+                <circle id="header-blue-vertex-3" cx="53.54" cy="59.41" r="2" fill="#66B2FF" />
+                <circle id="header-blue-vertex-4" cx="50" cy="60" r="2" fill="#66B2FF" />
+                <circle id="header-blue-vertex-5" cx="46.46" cy="59.41" r="2" fill="#66B2FF" />
+                <circle id="header-blue-vertex-6" cx="45" cy="50" r="2" fill="#66B2FF" />
+                <circle id="header-blue-vertex-7" cx="46.46" cy="40.59" r="2" fill="#66B2FF" />
+              </svg>
+              
+              <!-- Header Text -->
+              <div class="flex flex-col items-start">
+                <h1 class="text-3xl font-bold text-cyan-300 mb-2">ThinkCNAP</h1>
+                <p class="text-gray-300 text-2xl font-semibold">Maturity Assessment & Attack Simulation Platform</p>
+              </div>
+            </div>
+          <div id="user-info"></div>
+        </div>
+      </header>
+
+      <!-- Navigation Bar (Maturity Assessment) -->
+      <nav id="maturity-nav" class="mb-6">
+      <div id="tabs" class="flex space-x-3 border-b border-gray-700 overflow-x-auto"></div>
+      
+        <!-- Hidden Platform Selection (Radio Buttons) - for internal logic only -->
+        <div style="display: none;">
+            <input type="radio" id="tag-aws" class="tag-filter" name="platform" value="aws" checked>
+            <input type="radio" id="tag-kubernetes" class="tag-filter" name="platform" value="kubernetes">
+            <input type="radio" id="tag-ai" class="tag-filter" name="platform" value="ai">
+        </div>
+      </nav>
+
+      <!-- Navigation Bar (Attack Simulation) -->
+      <nav id="attack-nav" class="mb-6 hidden">
+        <div id="attack-tabs" class="flex space-x-3 border-b border-gray-700 overflow-x-auto">
+          <button id="attack-tab-about" onclick="activateAttackTab('about')" 
+                  class="px-4 py-2 text-cyan-400 border-b-2 border-cyan-400 font-medium">
+            About
+          </button>
+          <button id="attack-tab-installation" onclick="activateAttackTab('installation')" 
+                  class="px-4 py-2 text-gray-400 hover:text-cyan-300 font-medium">
+            Installation
+          </button>
+          <button id="attack-tab-configuration" onclick="activateAttackTab('configuration')" 
+                  class="px-4 py-2 text-gray-400 hover:text-cyan-300 font-medium">
+            Configuration
+          </button>
+          <button id="attack-tab-report" onclick="activateAttackTab('report')" 
+                  class="px-4 py-2 text-gray-400 hover:text-cyan-300 font-medium">
+            Report
+          </button>
+      </div>
+    </nav>
+
+      <!-- Content Wrapper: Sidebar + Panels -->
+      <div class="content-wrapper">
+        <!-- Left Sidebar -->
+        <aside id="sidebar" class="sidebar">
+          <button id="sidebar-toggle" class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+            <svg id="sidebar-toggle-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+            </svg>
+          </button>
+          <nav class="sidebar-menu">
+            <!-- Maturity Assessment Section -->
+            <div class="menu-section">
+              <div class="menu-section-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <span>Maturity Assessment</span>
+              </div>
+              <div class="menu-item" onclick="selectMenuItem('maturity-aws')" data-menu="maturity-aws">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                </svg>
+                <span>AWS</span>
+              </div>
+              <div class="menu-item" onclick="selectMenuItem('maturity-kubernetes')" data-menu="maturity-kubernetes">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                <span>Kubernetes</span>
+              </div>
+              <div class="menu-item" onclick="selectMenuItem('maturity-ai')" data-menu="maturity-ai">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                <span>AI</span>
+              </div>
+            </div>
+            
+            <!-- Attack Simulation Section -->
+            <div class="menu-section">
+              <div class="menu-section-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <span>Attack Simulation</span>
+              </div>
+              <div class="menu-item" onclick="selectMenuItem('attack-deployment')" data-menu="attack-deployment">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <span>Deployment</span>
+              </div>
+            </div>
+          </nav>
+        </aside>
+
+        <!-- Panels Area -->
+        <div class="content-area">
+      <!-- Content panes -->
+      <div id="panes"></div>
+        </div>
+      </div>
+
+<script>
+// Version: 2.2 - Not Applicable maturity values
+
+// Global auth instance
+let auth;
+
+// Sidebar functionality
+let sidebarCollapsed = false;
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const toggleIcon = document.getElementById('sidebar-toggle-icon');
+  
+  sidebarCollapsed = !sidebarCollapsed;
+  
+  if (sidebarCollapsed) {
+    sidebar.classList.add('collapsed');
+    // Change icon to right arrow (>>) when collapsed
+    toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>';
+  } else {
+    sidebar.classList.remove('collapsed');
+    // Change icon to left arrow (<<) when expanded
+    toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>';
+  }
+  
+  // Save state to localStorage
+  localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+}
+
+function selectMenuItem(menuId) {
+  // Handle menu item selection
+  
+  // FIRST: Clear active state from ALL menu items (both maturity and attack simulation)
+  const allMenuItems = document.querySelectorAll('.menu-item');
+  allMenuItems.forEach(item => {
+    item.classList.remove('active');
+  });
+  
+  // Map menu items to platform/tab selection
+  const menuMap = {
+    'maturity-aws': { platform: 'aws', tab: 'dashboard' },
+    'maturity-kubernetes': { platform: 'kubernetes', tab: 'dashboard' },
+    'maturity-ai': { platform: 'ai', tab: 'dashboard' },
+    'attack-deployment': { platform: null, tab: 'attack-deployment' }
+  };
+  
+  const action = menuMap[menuId];
+  if (action) {
+    if (action.platform) {
+      // Show maturity assessment navigation bar
+      const maturityNav = document.getElementById('maturity-nav');
+      const attackNav = document.getElementById('attack-nav');
+      if (maturityNav) maturityNav.classList.remove('hidden');
+      if (attackNav) attackNav.classList.add('hidden');
+      
+      // Hide all attack panes
+      document.querySelectorAll('[id^="pane-attack-"]').forEach(pane => {
+        pane.classList.add('hidden');
+      });
+      
+      // Set platform radio button (hidden, for internal logic)
+      const radio = document.querySelector(`input[name="platform"][value="${action.platform}"]`);
+      if (radio && !radio.checked) {
+        radio.checked = true;
+        // Trigger change event to update dashboard (same behavior as clicking radio button)
+        // This will trigger updateTagSelection and syncSidebarMenuState via event listener
+        const changeEvent = new Event('change', { bubbles: true });
+        radio.dispatchEvent(changeEvent);
+      } else if (radio && radio.checked) {
+        // Already selected, just sync the menu state
+        syncSidebarMenuState();
+      }
+    } else {
+      // IMPORTANT: Uncheck all radio buttons when attack simulation is selected
+      // This ensures syncSidebarMenuState won't set maturity items to active
+      document.querySelectorAll('input[name="platform"]').forEach(radio => {
+        if (radio.checked) {
+          radio.checked = false;
+        }
+      });
+      
+      // For attack simulation, set active class directly
+      const selectedItem = document.querySelector(`[data-menu="${menuId}"]`);
+      if (selectedItem) {
+        selectedItem.classList.add('active');
+      }
+      
+      if (menuId === 'attack-deployment') {
+        // Show attack simulation navigation bar
+        const maturityNav = document.getElementById('maturity-nav');
+        const attackNav = document.getElementById('attack-nav');
+        if (maturityNav) maturityNav.classList.add('hidden');
+        if (attackNav) attackNav.classList.remove('hidden');
+        
+        // Hide all maturity assessment panes
+        document.querySelectorAll('[id^="pane-"]').forEach(pane => {
+          if (!pane.id.startsWith('pane-attack-')) {
+            pane.classList.add('hidden');
+          }
+        });
+        
+        // Show attack simulation panes and activate first tab
+        showAttackSimulationPanes();
+        activateAttackTab('about');
+      }
+    }
+  }
+  
+  // Safety check: Ensure only one menu item is active
+  setTimeout(() => {
+    const activeItems = document.querySelectorAll('.menu-item.active');
+    if (activeItems.length > 1) {
+      // Force only the last clicked item to be active
+      const lastClicked = document.querySelector(`[data-menu="${menuId}"]`);
+      activeItems.forEach(item => {
+        if (item !== lastClicked) {
+          item.classList.remove('active');
+        }
+      });
+      if (lastClicked && !lastClicked.classList.contains('active')) {
+        lastClicked.classList.add('active');
+      }
+    }
+  }, 100);
+}
+
+// Force ensure only one menu item is active (safety function)
+function ensureSingleActiveMenuItem() {
+  const activeItems = document.querySelectorAll('.menu-item.active');
+  if (activeItems.length > 1) {
+    activeItems.forEach(item => {
+      item.classList.remove('active');
+    });
+    // If there's a checked radio, set that maturity item active
+    const checkedRadio = document.querySelector('input[name="platform"]:checked');
+    if (checkedRadio) {
+      const platform = checkedRadio.value;
+      const menuId = `maturity-${platform}`;
+      const menuItem = document.querySelector(`[data-menu="${menuId}"]`);
+      if (menuItem) {
+        menuItem.classList.add('active');
+      }
+    }
+  }
+}
+
+function showAttackSimulationPanes() {
+  const panesElement = document.getElementById('panes');
+  
+  // Create About pane if it doesn't exist
+  if (!document.getElementById('pane-attack-about')) {
+    const aboutPane = document.createElement('div');
+    aboutPane.id = 'pane-attack-about';
+    aboutPane.className = 'pt-2 px-4 pb-4 hidden';
+    aboutPane.innerHTML = createAttackAboutHTML();
+    panesElement.appendChild(aboutPane);
+  }
+  
+  // Create Installation pane if it doesn't exist
+  if (!document.getElementById('pane-attack-installation')) {
+    const installationPane = document.createElement('div');
+    installationPane.id = 'pane-attack-installation';
+    installationPane.className = 'pt-2 px-4 pb-4 hidden';
+    installationPane.innerHTML = createAttackInstallationHTML();
+    panesElement.appendChild(installationPane);
+  }
+  
+  // Create Configuration pane if it doesn't exist
+  if (!document.getElementById('pane-attack-configuration')) {
+    const configPane = document.createElement('div');
+    configPane.id = 'pane-attack-configuration';
+    configPane.className = 'pt-2 px-4 pb-4 hidden';
+    configPane.innerHTML = createAttackConfigHTML();
+    panesElement.appendChild(configPane);
+  }
+  
+  // Create Report pane if it doesn't exist
+  if (!document.getElementById('pane-attack-report')) {
+    const reportPane = document.createElement('div');
+    reportPane.id = 'pane-attack-report';
+    reportPane.className = 'pt-2 px-4 pb-4 hidden';
+    reportPane.innerHTML = createAttackReportHTML();
+    panesElement.appendChild(reportPane);
+  }
+}
+
+function activateAttackTab(tabName) {
+  // Update tab buttons
+  ['about', 'installation', 'configuration', 'report'].forEach(tab => {
+    const tabButton = document.getElementById(`attack-tab-${tab}`);
+    const pane = document.getElementById(`pane-attack-${tab}`);
+    
+    if (tabButton) {
+      if (tab === tabName) {
+        tabButton.classList.remove('text-gray-400', 'hover:text-cyan-300');
+        tabButton.classList.add('text-cyan-400', 'border-b-2', 'border-cyan-400');
+      } else {
+        tabButton.classList.remove('text-cyan-400', 'border-b-2', 'border-cyan-400');
+        tabButton.classList.add('text-gray-400', 'hover:text-cyan-300');
+      }
+    }
+    
+    if (pane) {
+      if (tab === tabName) {
+        pane.classList.remove('hidden');
+      } else {
+        pane.classList.add('hidden');
+      }
+    }
+  });
+}
+
+function createAttackAboutHTML() {
+  return `
+    <div class="w-full max-w-full px-4">
+      <div class="mb-3">
+        <h2 class="text-3xl font-bold text-cyan-300 mb-1">About Attack Simulation</h2>
+        <p class="text-gray-400">Automated security testing using MITRE ATT&CK framework</p>
+      </div>
+      
+      <div class="space-y-6">
+        <!-- Overview -->
+        <div class="bg-gray-800 rounded-lg p-6">
+          <h3 class="text-xl font-semibold text-white mb-4">Overview</h3>
+          <p class="text-gray-300 mb-4">
+            Attack Simulation is a containerized security testing tool that automates the execution of MITRE ATT&CK techniques 
+            to assess your cloud infrastructure's security posture. It runs as a Kubernetes Job, allowing you to execute 
+            security assessments on-demand against your AWS, Kubernetes, or other cloud environments.
+          </p>
+          <p class="text-gray-300">
+            The tool executes various attack techniques from the MITRE ATT&CK framework, helping you identify security gaps, 
+            validate your detection capabilities, and improve your overall security maturity.
+          </p>
+        </div>
+        
+        <!-- Key Features -->
+        <div class="bg-gray-800 rounded-lg p-6">
+          <h3 class="text-xl font-semibold text-white mb-4">Key Features</h3>
+          <ul class="text-gray-300 space-y-2">
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-cyan-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span><strong class="text-cyan-300">MITRE ATT&CK Framework:</strong> Executes real attack techniques based on the industry-standard MITRE ATT&CK framework</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-cyan-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span><strong class="text-cyan-300">On-Demand Execution:</strong> Runs as a Kubernetes Job that you can trigger manually when needed</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-cyan-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span><strong class="text-cyan-300">Cloud Native:</strong> Designed for Kubernetes environments with support for AWS, multi-cloud, and containerized infrastructure</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-cyan-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span><strong class="text-cyan-300">Automated Testing:</strong> Continuously validates your security controls and detection mechanisms</span>
+            </li>
+            <li class="flex items-start">
+              <svg class="w-5 h-5 text-cyan-400 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span><strong class="text-cyan-300">Helm Chart:</strong> Easy deployment and configuration using Helm charts</span>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Repository Link -->
+        <div class="bg-blue-900/20 border border-blue-700 rounded-lg p-6">
+          <h3 class="text-lg font-semibold text-blue-300 mb-2">📚 Repository</h3>
+          <p class="text-gray-300 mb-3">For more information, source code, and contributions, visit:</p>
+          <a href="https://github.com/aliaksxssv/attack-simulation" target="_blank" 
+             class="text-cyan-400 hover:text-cyan-300 underline inline-flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            github.com/aliaksxssv/attack-simulation
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function createAttackInstallationHTML() {
+  return `
+    <div class="w-full max-w-full px-4">
+      <div class="mb-3">
+        <h2 class="text-3xl font-bold text-cyan-300 mb-1">Installation Guide</h2>
+        <p class="text-gray-400">Step-by-step instructions to deploy the attack simulation container</p>
+      </div>
+      
+      <div class="space-y-6">
+        <!-- Step 1: Add Helm Repo -->
+        <div class="bg-gray-800 rounded-lg p-6">
+          <h3 class="text-xl font-semibold text-white mb-4">Step 1: Add Helm Repository</h3>
+          <div class="bg-gray-900 rounded p-4 font-mono text-sm text-gray-300">
+            <div class="mb-2">helm repo add aliaksxssv https://aliaksxssv.github.io/attack-simulation/</div>
+            <div>helm repo update aliaksxssv</div>
+          </div>
+        </div>
+        
+        <!-- Step 2: Download values.yaml -->
+        <div class="bg-gray-800 rounded-lg p-6">
+          <h3 class="text-xl font-semibold text-white mb-4">Step 2: Configure Values</h3>
+          <p class="text-gray-300 mb-4">Go to the <strong class="text-cyan-300">Configuration</strong> tab to set your AWS credentials and region, then download the values.yaml file.</p>
+        </div>
+        
+        <!-- Step 3: Install -->
+        <div class="bg-gray-800 rounded-lg p-6">
+          <h3 class="text-xl font-semibold text-white mb-4">Step 3: Install the Helm Chart</h3>
+          <div class="bg-gray-900 rounded p-4 font-mono text-sm text-gray-300">
+            <div>helm install attack-simulation aliaksxssv/attack-simulation -f values.yaml --namespace attack-simulation --create-namespace</div>
+          </div>
+          <p class="text-gray-300 mt-4 text-sm">This will create a new namespace called "attack-simulation" and deploy the Job with your configuration.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function createAttackReportHTML() {
+  return `
+    <div class="w-full max-w-full px-4">
+      <div class="mb-3">
+        <h2 class="text-3xl font-bold text-cyan-300 mb-1">Attack Simulation Report</h2>
+        <p class="text-gray-400">View results and insights from attack simulations</p>
+      </div>
+      
+      <div class="bg-gray-800 rounded-lg p-6">
+        <div class="text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <h3 class="mt-4 text-lg font-medium text-gray-300">Report Feature Coming Soon</h3>
+          <p class="mt-2 text-sm text-gray-400">Attack simulation reports will be displayed here once available.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function createAttackConfigHTML() {
+  return `
+    <div class="w-full max-w-full px-4">
+      <div class="mb-3">
+        <h2 class="text-3xl font-bold text-cyan-300 mb-1">Configuration</h2>
+        <p class="text-gray-400">Configure AWS credentials and region for the attack simulation container</p>
+      </div>
+      
+      <form id="attack-config-form" class="bg-gray-800 rounded-lg p-6">
+        <h3 class="text-xl font-semibold text-white mb-6">Configuration Values</h3>
+        
+        <div class="space-y-6">
+          <!-- AWS Credentials -->
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">AWS Access Key ID</label>
+            <input type="text" id="aws-access-key-id" name="awsAccessKeyId" 
+                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400"
+                   placeholder="Enter AWS Access Key ID">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">AWS Secret Access Key</label>
+            <input type="password" id="aws-secret-access-key" name="awsSecretAccessKey" 
+                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400"
+                   placeholder="Enter AWS Secret Access Key">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">AWS Region</label>
+            <input type="text" id="aws-region" name="awsRegion" 
+                   class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400"
+                   placeholder="e.g., us-east-1" value="us-east-1">
+          </div>
+          
+        </div>
+        
+        <div class="mt-8 flex justify-end">
+          <button type="button" onclick="downloadValuesYaml()" 
+                  class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2 px-6 rounded-lg transition-colors">
+            Download values.yaml
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function downloadValuesYaml() {
+  // Get form values
+  const awsAccessKeyId = document.getElementById('aws-access-key-id').value.trim();
+  const awsSecretAccessKey = document.getElementById('aws-secret-access-key').value.trim();
+  const awsRegion = document.getElementById('aws-region').value.trim() || 'us-east-1';
+  
+  // Validate required fields
+  if (!awsAccessKeyId || !awsSecretAccessKey) {
+    alert('Please fill in AWS Access Key ID and AWS Secret Access Key');
+    return;
+  }
+  
+  // Generate values.yaml content
+  const valuesYaml = `# Default values for job.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: aliaksxssv/attack-simulation
+  tag: "latest"
+  imagePullPolicy: Always
+  imagePullSecret: ""
+
+labels:
+  app: attack-simulation
+
+command: ["/bin/bash"]
+args:
+  - "/opt/mitre/simulate.sh"
+env: []
+
+resources: 
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+securityContext: 
+  privileged: true  # Set to true to enable privileged mode
+
+annotations: {}
+restartPolicy: Never
+backoffLimit: 3
+nodeSelector: {}
+tolerations: []
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: []
+
+clusterRole:
+  name: ""
+
+clusterRoleBinding:
+  name: ""
+
+volume:
+  mountPath: ""
+
+configMap:
+  config: {}
+
+secrets:
+  AWS_ACCESS_KEY_ID: "${awsAccessKeyId}"
+  AWS_SECRET_ACCESS_KEY: "${awsSecretAccessKey}"
+  AWS_REGION: "${awsRegion}"
+`;
+  
+  // Create blob and download
+  const blob = new Blob([valuesYaml], { type: 'text/yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'values.yaml';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Restore sidebar state on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const savedState = localStorage.getItem('sidebarCollapsed');
+  if (savedState === 'true') {
+    sidebarCollapsed = true;
+    toggleSidebar();
+  }
+});
+
+// Forgot Password functions
+function showForgotPasswordModal() {
+  let modal = document.getElementById('forgot-password-modal');
+  if (!modal) {
+    modal = createForgotPasswordModal();
+    document.body.appendChild(modal);
+  }
+  modal.classList.remove('hidden');
+}
+
+function createForgotPasswordModal() {
+  const modal = document.createElement('div');
+  modal.id = 'forgot-password-modal';
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+      <h2 class="text-2xl font-bold text-white mb-6">Reset Password</h2>
+      
+      <form id="forgot-password-form" class="space-y-4">
+        <div>
+          <label for="reset-email" class="block text-sm font-medium text-gray-300 mb-2">
+            Email Address
+          </label>
+          <input type="email" id="reset-email" name="email" required
+                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                 placeholder="Enter your email address">
+        </div>
+        
+        <div id="forgot-password-error" class="text-red-400 text-sm hidden"></div>
+        <div id="forgot-password-success" class="text-green-400 text-sm hidden"></div>
+        
+        <div class="flex space-x-4 pt-4">
+          <button type="submit" 
+                  class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+            Send Reset Link
+          </button>
+          <button type="button" onclick="hideForgotPasswordModal()"
+                  class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  // Add form submit handler
+  modal.querySelector('#forgot-password-form').addEventListener('submit', handleForgotPasswordSubmit);
+  
+  return modal;
+}
+
+function hideForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    // Clear form
+    const form = modal.querySelector('#forgot-password-form');
+    if (form) form.reset();
+    // Clear messages
+    const errorDiv = modal.querySelector('#forgot-password-error');
+    const successDiv = modal.querySelector('#forgot-password-success');
+    if (errorDiv) errorDiv.classList.add('hidden');
+    if (successDiv) successDiv.classList.add('hidden');
+  }
+}
+
+async function handleForgotPasswordSubmit(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(e.target);
+  const email = formData.get('email');
+  
+  const errorDiv = document.getElementById('forgot-password-error');
+  const successDiv = document.getElementById('forgot-password-success');
+  
+  // Clear previous messages
+  if (errorDiv) errorDiv.classList.add('hidden');
+  if (successDiv) successDiv.classList.add('hidden');
+  
+  try {
+    const response = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      showForgotPasswordSuccess('Password reset link sent to your email. Please check your inbox.');
+      setTimeout(() => {
+        hideForgotPasswordModal();
+      }, 3000);
+    } else {
+      showForgotPasswordError(result.error || 'Failed to send reset link');
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    showForgotPasswordError('Network error. Please try again.');
+  }
+}
+
+function showForgotPasswordError(message) {
+  const errorDiv = document.getElementById('forgot-password-error');
+  if (errorDiv) {
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+  }
+}
+
+function showForgotPasswordSuccess(message) {
+  const successDiv = document.getElementById('forgot-password-success');
+  if (successDiv) {
+    successDiv.textContent = message;
+    successDiv.classList.remove('hidden');
+  }
+}
+
+// Debug Google OAuth status (for troubleshooting)
+function debugGoogleOAuth() {
+  const info = {
+    googleAvailable: !!(window.google && google.accounts && google.accounts.id),
+    authAvailable: !!window.auth,
+    scriptsLoaded: document.querySelectorAll('script[src*="google"]').length
+  };
+  
+  console.log('Google OAuth Status:', info);
+  
+  if (!info.googleAvailable) {
+    console.log('Troubleshooting: Try incognito mode, disable ad blockers, or check browser settings for third-party sign-in');
+  }
+}
+
+// Trigger Google Sign-In manually
+function triggerGoogleSignIn() {
+  if (window.google && google.accounts && google.accounts.id) {
+    try {
+      // Get the client ID from environment variable or fallback
+      const clientId = window.GOOGLE_CLIENT_ID || 
+                      (window.auth && window.auth.googleClientId) || 
+                      document.querySelector('meta[name="google-client-id"]')?.content ||
+                      '314381672297-eu9jidtaeil3404mbfv11031jncugv8q.apps.googleusercontent.com';
+      
+      // Initialize Google OAuth
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response) => {
+          // Handle the response
+          if (window.auth && typeof window.auth.handleGoogleCallback === 'function') {
+            window.auth.handleGoogleCallback(response);
+          } else {
+            handleGoogleCallbackManually(response);
+          }
+        },
+        auto_select: false,
+        cancel_on_tap_outside: false
+      });
+      
+      // Trigger the native sign-in prompt
+      google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          alert('Google Sign-In is not available right now. This might be due to:\n\n' +
+                '• Browser settings blocking third-party sign-in\n' +
+                '• Previous user action disabling Google Sign-In\n' +
+                '• Ad blockers or extensions interfering\n\n' +
+                'Please try:\n' +
+                '1. Enable third-party sign-in in browser settings\n' +
+                '2. Use incognito/private browsing mode\n' +
+                '3. Disable ad blockers temporarily\n' +
+                '4. Use email/password sign-in instead');
+        }
+      });
+    } catch (error) {
+      console.error('Google Sign-In error:', error);
+      alert('Google Sign-In encountered an error. Please try again or use email/password sign-in.');
+    }
+  } else {
+    alert('Google Sign-In is not loaded. Please refresh the page and try again.');
+  }
+}
+
+// Manual Google callback handler for when auth object isn't available
+async function handleGoogleCallbackManually(response) {
+  try {
+    const result = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        credential: response.credential
+      })
+    });
+    
+    if (result.ok) {
+      const data = await result.json();
+      
+      // Store user session
+      localStorage.setItem('think_cnap_token', data.token);
+      localStorage.setItem('think_cnap_user', JSON.stringify(data.user));
+      
+      // Trigger auth state change instead of reloading
+      if (window.auth) {
+        window.auth.currentUser = data.user;
+        window.auth.onAuthStateChange('signed-in');
+      } else {
+        // Fallback: reload if auth object not available
+        window.location.reload();
+      }
+    } else {
+      const errorData = await result.json();
+      alert('Google authentication failed: ' + (errorData.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Google authentication failed. Please try again.');
+  }
+}
+
+// Authentication UI functions
+function switchAuthTab(tab) {
+  const signinTab = document.getElementById('signin-tab');
+  const signupTab = document.getElementById('signup-tab');
+  const signinForm = document.getElementById('signin-form');
+  const signupForm = document.getElementById('signup-form');
+  
+  if (tab === 'signin') {
+    signinTab.className = 'flex-1 py-2 px-4 bg-cyan-600 text-white rounded-l-lg';
+    signupTab.className = 'flex-1 py-2 px-4 bg-gray-600 text-white rounded-r-lg';
+    signinForm.classList.remove('hidden');
+    signupForm.classList.add('hidden');
+  } else {
+    signinTab.className = 'flex-1 py-2 px-4 bg-gray-600 text-white rounded-l-lg';
+    signupTab.className = 'flex-1 py-2 px-4 bg-cyan-600 text-white rounded-r-lg';
+    signinForm.classList.add('hidden');
+    signupForm.classList.remove('hidden');
+  }
+}
+
+async function handleEmailAuth(event, type) {
+  event.preventDefault();
+  
+  const email = document.getElementById(`${type}-email`).value;
+  const password = document.getElementById(`${type}-password`).value;
+  
+  let result;
+  if (type === 'signin') {
+    result = await auth.signInWithEmail(email, password);
+  } else {
+    result = await auth.signUpWithEmail(email, password);
+  }
+  
+  if (result.success) {
+    if (result.verification_required) {
+      // Show verification notice for signup
+      showVerificationNotice(result.message, result.email);
+    }
+    // If no verification required, auth.js will handle the success flow
+  } else {
+    if (result.verification_required) {
+      // Show verification notice for signin
+      showVerificationNotice(result.error, result.email);
+    } else {
+      auth.showError(result.error);
+    }
+  }
+}
+
+let currentVerificationEmail = null;
+
+function showVerificationNotice(message, email) {
+  currentVerificationEmail = email;
+  const notice = document.getElementById('verification-notice');
+  const messageEl = document.getElementById('verification-message');
+  
+  messageEl.textContent = message;
+  notice.classList.remove('hidden');
+}
+
+function hideVerificationNotice() {
+  const notice = document.getElementById('verification-notice');
+  notice.classList.add('hidden');
+  currentVerificationEmail = null;
+}
+
+async function resendVerificationEmail() {
+  if (!currentVerificationEmail) {
+    auth.showError('No email address available for verification');
+    return;
+  }
+  
+  const result = await auth.resendVerificationEmail(currentVerificationEmail);
+  
+  if (result.success) {
+    auth.showSuccess(result.message);
+  } else {
+    auth.showError(result.error);
+  }
+}
+
+// Initialize authentication and dashboard
+document.addEventListener('DOMContentLoaded', async function() {
+  // Check for email verification token in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const verificationToken = urlParams.get('token');
+  const shouldShowSignIn = urlParams.get('signin');
+  
+  if (verificationToken && window.location.pathname === '/verify-email') {
+    // Handle email verification
+    console.log('Processing email verification token');
+    
+    // Show loading state
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) {
+      authModal.innerHTML = `
+        <div class="bg-gray-800 p-8 rounded-lg max-w-md w-full mx-4 text-center">
+          <h2 class="text-2xl font-bold text-cyan-300 mb-4">Verifying Email...</h2>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-300 mx-auto"></div>
+    </div>
+      `;
+    }
+    
+    // Initialize auth first (only if not already initialized)
+    if (!auth) {
+      auth = new ThinkCNAPAuth();
+    }
+    while (!auth.isInitialized) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Verify email
+    const result = await auth.verifyEmail(verificationToken);
+    
+    if (result.success) {
+      // Success - user will be automatically logged in
+      auth.showSuccess(result.message);
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      // Show error and reset to normal auth modal
+      if (authModal) {
+        location.reload(); // Reload to show normal auth modal
+      }
+      auth.showError(result.error);
+    }
+    
+    return; // Exit early for verification flow
+  }
+  
+  // Normal authentication flow (only if not already initialized)
+  if (!auth) {
+    auth = new ThinkCNAPAuth();
+  }
+  
+  // Wait for auth to initialize
+  while (!auth.isInitialized) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  
+  // Google Sign-In button will be rendered automatically by auth.initGoogleAuth()
+  
+  // Try to render native Google button after page loads
+  setTimeout(() => {
+    const googleButton = document.getElementById('google-signin-button');
+    const fallbackButton = document.getElementById('google-signin-fallback');
+    
+    if (googleButton && fallbackButton) {
+      // Check if Google button is empty (not rendered)
+      const isGoogleButtonEmpty = googleButton.children.length === 0;
+      const isGoogleAvailable = window.google && google.accounts && google.accounts.id;
+      
+      if (isGoogleButtonEmpty && isGoogleAvailable) {
+        // Get the client ID from environment variable or fallback
+        const clientId = window.GOOGLE_CLIENT_ID || 
+                        document.querySelector('meta[name="google-client-id"]')?.content ||
+                        '314381672297-eu9jidtaeil3404mbfv11031jncugv8q.apps.googleusercontent.com';
+        
+        // Initialize Google OAuth for the native button
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) => {
+            // Handle the response
+            if (window.auth && typeof window.auth.handleGoogleCallback === 'function') {
+              window.auth.handleGoogleCallback(response);
+            } else {
+              handleGoogleCallbackManually(response);
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: false
+        });
+        
+        // Render the native Google button
+        google.accounts.id.renderButton(googleButton, {
+          theme: 'outline',
+          size: 'large',
+          text: 'signin_with',
+          shape: 'rectangular',
+          width: 250
+        });
+      } else if (!isGoogleAvailable) {
+        fallbackButton.classList.remove('hidden');
+      }
+    }
+  }, 3000);
+  
+  // Check if we should show sign-in modal (from admin sign-out redirect)
+  if (shouldShowSignIn === 'true') {
+    // Clear the URL parameter
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Show the auth modal
+    const authModal = document.getElementById('auth-modal');
+    if (authModal) {
+      authModal.classList.remove('hidden');
+    }
+  }
+  
+  // Check if user is already authenticated
+  console.log('🔍 Initial auth check:', { 
+    hasAuth: !!auth,
+    hasCurrentUser: !!auth?.currentUser, 
+    currentUser: auth?.currentUser,
+    hasToken: !!localStorage.getItem('think_cnap_token'),
+    hasUser: !!localStorage.getItem('think_cnap_user'),
+    localStorageKeys: Object.keys(localStorage).filter(key => key.startsWith('think_cnap'))
+  });
+  
+  if (auth.currentUser) {
+    console.log('🔍 User already authenticated:', auth.currentUser);
+    auth.onAuthStateChange('signed-in');
+    // Initialize dashboard for authenticated users
+    setTimeout(() => initializeDashboard(), 500);
+  } else if (localStorage.getItem('think_cnap_token') && localStorage.getItem('think_cnap_user')) {
+    console.log('🔍 Found stored session, waiting for auth to initialize...');
+    // Wait for auth to initialize, then check again
+    setTimeout(() => {
+      console.log('🔍 Delayed auth check:', { 
+        hasCurrentUser: !!auth.currentUser, 
+        currentUser: auth.currentUser 
+      });
+      if (auth.currentUser) {
+        console.log('🔍 User authenticated after delay:', auth.currentUser);
+        auth.onAuthStateChange('signed-in');
+        setTimeout(() => initializeDashboard(), 500);
+      } else {
+        console.log('🔍 No user found after delay, showing sign-in');
+      }
+    }, 1000);
+  } else {
+    console.log('🔍 No stored session found, showing sign-in');
+  }
+  
+  // Listen for auth state changes
+  window.addEventListener('authStateChange', async function(event) {
+    const { state } = event.detail;
+    
+    if (state === 'signed-in') {
+      await initializeDashboard();
+    } else if (state === 'signed-out') {
+      // Clear dashboard and destroy charts on sign out
+      if (dashboardInstance) {
+        console.log('Clearing dashboard on sign out...');
+        dashboardInstance.clearAllCharts();
+        dashboardInstance = null;
+      }
+    }
+  });
+  
+  
+});
+
+let dashboardInstance = null;
+// Make dashboardInstance globally accessible
+window.dashboardInstance = null;
+
+async function initializeDashboard() {
+  // Always reinitialize when switching users to ensure fresh data
+  if (dashboardInstance) {
+    console.log('Reinitializing dashboard for user switch...');
+    // Clear existing instance to force fresh initialization
+    dashboardInstance = null;
+    window.dashboardInstance = null;
+  }
+  
+  // Initialize the dashboard
+  dashboardInstance = new SecurityDashboard();
+  window.dashboardInstance = dashboardInstance;
+  await dashboardInstance.init();
+  
+  // Sync sidebar menu state with initial platform selection
+  syncSidebarMenuState();
+}
+
+// Sync sidebar menu items with radio button state
+function syncSidebarMenuState() {
+  // CRITICAL: Remove active class from ALL menu items first (both maturity and attack simulation)
+  // This must happen BEFORE checking radio buttons to prevent multiple active items
+  const allMenuItems = document.querySelectorAll('.menu-item');
+  allMenuItems.forEach(item => {
+    item.classList.remove('active');
+  });
+  
+  // Get the currently checked radio button
+  const checkedRadio = document.querySelector('input[name="platform"]:checked');
+  if (checkedRadio) {
+    const platform = checkedRadio.value;
+    const menuId = `maturity-${platform}`;
+    const menuItem = document.querySelector(`[data-menu="${menuId}"]`);
+    if (menuItem) {
+      menuItem.classList.add('active');
+    }
+  } else {
+    // Ensure no menu items are active if no radio is checked
+    const stillActive = document.querySelectorAll('.menu-item.active');
+    if (stillActive.length > 0) {
+      stillActive.forEach(item => {
+        item.classList.remove('active');
+      });
+    }
+  }
+  
+  // Safety check: Ensure only one menu item is active
+  setTimeout(() => {
+    const activeItems = document.querySelectorAll('.menu-item.active');
+    if (activeItems.length > 1) {
+      ensureSingleActiveMenuItem();
+    }
+  }, 50);
+}
+
+</script>
+
+  <script>
+class SecurityDashboard {
+      constructor() {
+        this.config = null;
+        this.selectedTags = ['aws']; // Default to AWS only
+        this.charts = {};
+    this.scoring = { measures: {} };
+        this.hasUnsavedChanges = false;
+    this.isSaving = false;
+    
+    this.MATURITY_LEVELS = [
+      'No adoption',
+      'Low adoption', 
+      'Medium adoption',
+      'High adoption'
+    ];
+    
+        this.IMPACT_MAP = { low: 1, medium: 2, high: 3 };
+    this.EFFORT_MAP = { low: 3, medium: 2, high: 1 };
+        
+        // Don't auto-initialize in constructor - let initializeDashboard() handle it
+      }
+
+      async init() {
+    console.log('Initializing Security Dashboard...');
+    
+    try {
+      await this.loadControlsAndScoring();
+      this.initApp();
+    } catch (error) {
+      console.error('Failed to initialize:', error);
+    }
+  }
+
+  async loadControlsAndScoring() {
+    try {
+      // Clear any previous data to ensure fresh load
+      this.config = null;
+      this.scoring = { measures: {} };
+      
+      // Load controls from database API
+      console.log('Loading controls from database API...');
+      
+      const controlsResponse = await fetch('/api/controls');
+      if (!controlsResponse.ok) {
+        throw new Error(`Failed to fetch controls: ${controlsResponse.status}`);
+      }
+      
+      this.config = await controlsResponse.json();
+      console.log('Controls loaded:', this.config);
+      
+      // Load user-specific scoring data (includes defaults + custom values)
+      console.log('Loading user scoring data...');
+      
+      this.scoring = await auth.loadUserScoring();
+      console.log('📥 Loaded user scoring:', this.scoring);
+      console.log('📥 Scoring measures keys:', Object.keys(this.scoring?.measures || {}));
+      console.log('User scoring loaded:', this.scoring);
+      
+      // Merge scoring data with controls
+      this.mergeControlsWithScoring(this.scoring);
+      
+        } catch (error) {
+      console.error('Error loading data:', error);
+      throw error;
+    }
+  }
+
+  mergeControlsWithScoring(scoringData) {
+    console.log('Merging controls with scoring data...');
+    
+    if (!this.config?.security_domains) {
+      console.error('No security domains found');
+      return;
+    }
+    
+    // Apply scoring to action items
+    this.config.security_domains.forEach(domain => {
+      domain.security_controls?.forEach(control => {
+        control.action_items?.forEach(actionItem => {
+          const measureId = actionItem.measure_id;
+          const scoring = scoringData.measures?.[measureId];
+          
+          if (scoring) {
+            actionItem.impact = scoring.impact || 'undefined';
+            actionItem.effort = scoring.effort || 'undefined';
+            actionItem.initial_maturity = scoring.initial_maturity !== undefined ? scoring.initial_maturity : 'undefined';
+            actionItem.present_maturity = scoring.present_maturity !== undefined ? scoring.present_maturity : 'undefined';
+            actionItem.desired_maturity = scoring.desired_maturity !== undefined ? scoring.desired_maturity : 'undefined';
+        } else {
+            // Default values if no scoring found
+            actionItem.impact = 'undefined';
+            actionItem.effort = 'undefined';
+            actionItem.initial_maturity = 'undefined';
+            actionItem.present_maturity = 'undefined';
+            actionItem.desired_maturity = 'undefined';
+          }
+        });
+      });
+    });
+    
+    console.log('Scoring merge completed');
+  }
+
+  calculateWeight(actionItem) {
+    if (actionItem.impact === 'undefined' || actionItem.effort === 'undefined') {
+      return 0;
+    }
+    const impact = this.IMPACT_MAP[actionItem.impact] || 1;
+    const effort = this.EFFORT_MAP[actionItem.effort] || 1;
+    return impact / effort;
+  }
+
+  // Helper function to convert impact/effort to numeric values (from mobile app)
+  getImpactEffortValue(value) {
+    if (value === 'low' || value === 1) return 1;
+    if (value === 'medium' || value === 2) return 2;
+    if (value === 'high' || value === 3) return 3;
+    return 0; // undefined or invalid
+  }
+
+
+  calculateDomainField(domain, field, tags = null) {
+    let items = (domain.security_controls || []).flatMap(control => control.action_items || []);
+    
+    // Filter by tags if specified
+    if (tags && tags.length > 0) {
+      items = items.filter(item => {
+        const itemTag = item.tags;
+        return tags.includes(itemTag);
+      });
+    } else if (tags && tags.length === 0) {
+      items = [];
+    }
+    
+    
+    let weightedScore = 0;
+    let totalWeight = 0;
+    let definedMeasuresCount = 0;
+    
+    // Collect only measures where ALL maturity scores are applicable (not -1)
+    const applicableMeasures = [];
+    items.forEach(item => {
+      // Get impact and effort values (handle both string and numeric)
+      const impact = this.getImpactEffortValue(item.impact);
+      const effort = this.getImpactEffortValue(item.effort);
+      
+      // Calculate weight (impact/effort) - avoid division by zero
+      const weight = effort > 0 ? impact / effort : 0;
+      
+      // Check if this measure has ALL scores defined AND none are "Not Applicable" (-1)
+      // If ANY maturity value is -1, the entire measure is excluded from assessment
+      const hasAllScoresDefined = 
+        item.initial_maturity !== undefined && item.initial_maturity !== -1 && item.initial_maturity !== 'undefined' &&
+        item.present_maturity !== undefined && item.present_maturity !== -1 && item.present_maturity !== 'undefined' &&
+        item.desired_maturity !== undefined && item.desired_maturity !== -1 && item.desired_maturity !== 'undefined';
+      
+      // Only include measures that are fully applicable
+      if (hasAllScoresDefined) {
+        applicableMeasures.push({
+        item,
+        weight,
+        impact,
+        effort
+      });
+      }
+    });
+    
+    // Calculate total weight ONLY from applicable measures
+    applicableMeasures.forEach(measure => {
+      totalWeight += measure.weight;
+    });
+    
+    // Calculate weighted maturity from applicable measures
+    applicableMeasures.forEach(measure => {
+        const score = typeof measure.item[field] === 'string' ? 
+          parseInt(measure.item[field]) : measure.item[field];
+        
+        if (score > 0) {
+          weightedScore += score * measure.weight;
+          definedMeasuresCount++;
+      }
+    });
+    
+    // Return weighted average, normalized by total weight of applicable measures only
+    return totalWeight > 0 ? Math.round((weightedScore / totalWeight) * 10) / 10 : 0;
+  }
+
+  filterActionItemsByTags(actionItems, tags) {
+    if (!tags || tags.length === 0) return [];
+    return actionItems.filter(item => {
+      const itemTag = item.tags;
+      return tags.includes(itemTag);
+    });
+  }
+
+  updateTagSelection() {
+    const radioButtons = document.querySelectorAll('.tag-filter');
+    this.selectedTags = Array.from(radioButtons)
+      .filter(rb => rb.checked)
+      .map(rb => rb.value);
+    
+    this.refreshTabs();
+    this.refreshAllPanes();
+    this.updateChartsDisplay();
+    this.drawCharts();
+  }
+
+  async handleScoringChange(selectElement) {
+    const measureId = selectElement.dataset.measureId;
+    const field = selectElement.dataset.field;
+    const value = selectElement.value;
+    
+    console.log(`🔄 Scoring change detected: ${measureId}.${field} = ${value}`);
+    console.log('📊 Current scoring data before change:', this.scoring.measures?.[measureId]);
+    console.log('📊 Full scoring object before change:', JSON.stringify(this.scoring, null, 2));
+    
+    // Update local scoring data - preserve existing values
+    if (!this.scoring.measures[measureId]) {
+      this.scoring.measures[measureId] = {
+        impact: 'medium',
+        effort: 'medium', 
+        initial_maturity: -1,
+        present_maturity: -1,
+        desired_maturity: -1
+      };
+    }
+    
+    // Convert numeric values for maturity fields
+    if (field === 'initial_maturity' || field === 'present_maturity' || field === 'desired_maturity') {
+      this.scoring.measures[measureId][field] = parseInt(value);
+    } else {
+      this.scoring.measures[measureId][field] = value;
+    }
+    
+    // No need to mark as custom - backend will handle user-specific records automatically
+    this.hasUnsavedChanges = true;
+    
+    console.log('✅ Updated scoring data:', this.scoring.measures[measureId]);
+    console.log('📊 Full scoring object after change:', JSON.stringify(this.scoring, null, 2));
+    console.log('🔄 hasUnsavedChanges set to:', this.hasUnsavedChanges);
+    
+    // Update the action item in config for immediate UI refresh
+    this.updateActionItemScoring(measureId, field, value);
+    
+    // Auto-save with debouncing
+    console.log('⏰ Triggering debounced save...');
+    this.debouncedSave();
+    
+    // Refresh charts and calculations
+    this.refreshAllPanes();
+    this.updateChartsDisplay();
+    this.drawCharts();
+  }
+
+  updateActionItemScoring(measureId, field, value) {
+    // Update the action items in config for immediate display
+    this.config.security_domains?.forEach(domain => {
+      domain.security_controls?.forEach(control => {
+        control.action_items?.forEach(actionItem => {
+          if (actionItem.measure_id === measureId) {
+            if (field === 'initial_maturity' || field === 'present_maturity' || field === 'desired_maturity') {
+              actionItem[field] = parseInt(value);
+          } else {
+              actionItem[field] = value;
+            }
+          }
+        });
+      });
+    });
+  }
+
+  debouncedSave() {
+    this.hasUnsavedChanges = true;
+    
+    // Clear existing timeout
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+    
+    // Set new timeout for auto-save
+    this.saveTimeout = setTimeout(() => {
+      // Check if already saving before proceeding
+      if (!this.isSaving) {
+        this.saveScoring();
+      }
+    }, 1000); // Save after 1 second of no changes
+  }
+
+  async saveScoring() {
+    console.log('🔄 saveScoring called - hasUnsavedChanges:', this.hasUnsavedChanges, 'isSaving:', this.isSaving);
+    
+    // Prevent multiple concurrent saves
+    if (!this.hasUnsavedChanges || this.isSaving) {
+      console.log('❌ Save blocked - hasUnsavedChanges:', this.hasUnsavedChanges, 'isSaving:', this.isSaving);
+      return;
+    }
+    
+    this.isSaving = true;
+    console.log('💾 Starting save process with data:', this.scoring);
+    console.log('💾 Scoring measures keys:', Object.keys(this.scoring?.measures || {}));
+    console.log('💾 Full scoring JSON:', JSON.stringify(this.scoring, null, 2));
+    
+    try {
+      console.log('🔗 Calling auth.saveUserScoring with:', this.scoring);
+      console.log('🔗 Type of this.scoring:', typeof this.scoring);
+      console.log('🔗 this.scoring.measures exists:', !!this.scoring?.measures);
+      console.log('🔗 this.scoring.measures keys:', Object.keys(this.scoring?.measures || {}));
+      
+      // TEMP: Direct API call to bypass auth.js
+      console.log('🚀 Making direct API call...');
+      const user = auth.currentUser;
+      if (user) {
+        const response = await fetch(`/api/user/${user.id}/scoring`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('think_cnap_token')}`
+          },
+          body: JSON.stringify(this.scoring)
+        });
+        
+        const result = await response.json();
+        console.log('🚀 Direct API response:', result);
+        
+        if (response.ok) {
+          console.log('✅ Direct API call successful');
+          const success = true;
+          } else {
+          console.log('❌ Direct API call failed');
+          const success = false;
+        }
+      } else {
+        console.log('❌ No user found for direct API call');
+        const success = false;
+      }
+      
+      // Also try the original auth.js call
+      const success = await auth.saveUserScoring(this.scoring);
+      console.log('📤 Save result:', success);
+      
+      if (success === true) {
+        this.hasUnsavedChanges = false;
+        this.showSaveStatus('Saved ✓', 'text-green-400');
+          } else {
+        this.showSaveStatus('Save failed ✗', 'text-red-400');
+          }
+        } catch (error) {
+      console.error('Error saving scoring data:', error);
+      this.showSaveStatus('Save error ✗', 'text-red-400');
+        } finally {
+      this.isSaving = false;
+    }
+  }
+
+  showSaveStatus(message, className) {
+    // Clear any existing timeout
+    if (this.saveStatusTimeout) {
+      clearTimeout(this.saveStatusTimeout);
+    }
+    
+    // Create or update save status indicator
+    let statusEl = document.getElementById('save-status');
+    if (!statusEl) {
+      statusEl = document.createElement('div');
+      statusEl.id = 'save-status';
+      document.body.appendChild(statusEl);
+    }
+    
+    // Update content and styling
+    statusEl.textContent = message;
+    statusEl.className = `fixed top-4 right-4 px-3 py-2 bg-gray-800 rounded shadow-lg text-sm z-50 transition-all duration-200 ${className}`;
+    
+    // Show the element
+    statusEl.style.opacity = '1';
+    statusEl.style.transform = 'translateY(0)';
+    
+    // Auto-hide after 2 seconds for success, 3 seconds for errors
+    const hideDelay = message.includes('Saved ✓') ? 2000 : 3000;
+    
+    this.saveStatusTimeout = setTimeout(() => {
+      if (statusEl && statusEl.parentNode) {
+        statusEl.style.opacity = '0';
+        statusEl.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+          if (statusEl && statusEl.parentNode) {
+            statusEl.parentNode.removeChild(statusEl);
+          }
+        }, 200);
+      }
+    }, hideDelay);
+  }
+
+  refreshAllPanes() {
+    const domains = this.config.security_domains || [];
+    
+    domains.forEach((domain, index) => {
+      const slugName = this.createSlug(domain.name);
+      const oldPane = document.getElementById(`pane-${slugName}`);
+      
+      if (oldPane) {
+        const newPane = this.createDomainPane(domain, index);
+        
+        // Preserve the visibility state
+        const isVisible = !oldPane.classList.contains('hidden');
+        if (isVisible) {
+          newPane.classList.remove('hidden');
+        }
+        
+        if (oldPane.parentNode) {
+          oldPane.parentNode.replaceChild(newPane, oldPane);
+        }
+          }
+        });
+      }
+
+
+  updateChartHeader() {
+    let selectedPlatform = 'AWS'; // Default
+    if (this.selectedTags.includes('aws')) {
+      selectedPlatform = 'AWS';
+    } else if (this.selectedTags.includes('kubernetes')) {
+      selectedPlatform = 'Kubernetes';
+    } else if (this.selectedTags.includes('ai')) {
+      selectedPlatform = 'AI';
+    }
+    
+    const headerElement = document.getElementById('selected-platform');
+    if (headerElement) {
+      headerElement.textContent = selectedPlatform;
+    }
+  }
+
+  updateChartsDisplay() {
+    const awsChart = document.getElementById('chart-aws');
+    const kubernetesChart = document.getElementById('chart-kubernetes');
+    const aiChart = document.getElementById('chart-ai');
+    
+    const showAws = this.selectedTags.includes('aws');
+    const showKubernetes = this.selectedTags.includes('kubernetes');
+    const showAi = this.selectedTags.includes('ai');
+    
+    // Show/hide charts based on selection
+    awsChart.classList.toggle('hidden', !showAws);
+    kubernetesChart.classList.toggle('hidden', !showKubernetes);
+    aiChart.classList.toggle('hidden', !showAi);
+    
+    // Update chart header
+    this.updateChartHeader();
+    
+    // Trigger chart resize after layout change
+    setTimeout(() => {
+      if (this.charts.aws && showAws && this.charts.aws.canvas && this.charts.aws.canvas.parentNode) {
+        try {
+          this.charts.aws.resize();
+        } catch (error) {
+          console.warn('Failed to resize AWS chart:', error);
+        }
+      }
+      if (this.charts.kubernetes && showKubernetes && this.charts.kubernetes.canvas && this.charts.kubernetes.canvas.parentNode) {
+        try {
+          this.charts.kubernetes.resize();
+        } catch (error) {
+          console.warn('Failed to resize Kubernetes chart:', error);
+        }
+      }
+      if (this.charts.ai && showAi && this.charts.ai.canvas && this.charts.ai.canvas.parentNode) {
+        try {
+          this.charts.ai.resize();
+        } catch (error) {
+          console.warn('Failed to resize AI chart:', error);
+        }
+      }
+    }, 100);
+  }
+
+  createSlug(text) {
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  activateTab(slug) {
+    // Hide all panes
+    const allPanes = document.querySelectorAll('[id^="pane-"]');
+    allPanes.forEach(pane => {
+      pane.style.display = 'none';
+    });
+
+    // Show selected pane
+    const selectedPane = document.getElementById(`pane-${slug}`);
+    if (selectedPane) {
+      selectedPane.style.display = 'block';
+    }
+
+    // Update tab buttons
+    const allTabs = document.querySelectorAll('[id^="tab-"]');
+    allTabs.forEach(tab => {
+      tab.classList.remove('text-cyan-400', 'border-b-2', 'border-cyan-400');
+      tab.classList.add('nav-inactive');
+    });
+
+    // Highlight active tab
+    const activeTab = document.getElementById(`tab-${slug}`);
+    if (activeTab) {
+      activeTab.classList.remove('nav-inactive');
+      activeTab.classList.add('text-cyan-400', 'border-b-2', 'border-cyan-400');
+    }
+
+    // If dashboard tab, update charts
+    if (slug === 'dashboard') {
+      setTimeout(() => {
+        this.updateChartsDisplay();
+        this.drawCharts();
+      }, 100);
+    }
+  }
+
+  drawCharts() {
+    const domains = this.config.security_domains;
+
+    // Draw only the selected chart
+    if (this.selectedTags.includes('aws')) {
+      const filteredData = this.filterDomainsWithData(domains, ['aws']);
+      if (filteredData.domains.length > 0) {
+        this.drawSingleChart('aws', filteredData.labels, filteredData.domains, ['aws']);
+      } else {
+        this.clearChart('aws');
+      }
+      // Clear the other charts
+      this.clearChart('kubernetes');
+      this.clearChart('ai');
+    } else if (this.selectedTags.includes('kubernetes')) {
+      const filteredData = this.filterDomainsWithData(domains, ['kubernetes']);
+      if (filteredData.domains.length > 0) {
+        this.drawSingleChart('kubernetes', filteredData.labels, filteredData.domains, ['kubernetes']);
+      } else {
+        this.clearChart('kubernetes');
+      }
+      // Clear the other charts
+      this.clearChart('aws');
+      this.clearChart('ai');
+    } else if (this.selectedTags.includes('ai')) {
+      const filteredData = this.filterDomainsWithData(domains, ['ai']);
+      if (filteredData.domains.length > 0) {
+        this.drawSingleChart('ai', filteredData.labels, filteredData.domains, ['ai']);
+      } else {
+        this.clearChart('ai');
+      }
+      // Clear the other charts
+      this.clearChart('aws');
+      this.clearChart('kubernetes');
+    }
+  }
+
+  filterDomainsWithData(domains, filterTags) {
+    const filteredDomains = domains.filter(domain => {
+      return (domain.security_controls || []).some(control => {
+        return (control.action_items || []).some(item => {
+          return filterTags.includes(item.tags);
+        });
+      });
+    });
+
+    return {
+      domains: filteredDomains,
+      labels: filteredDomains.map(domain => domain.name)
+    };
+  }
+
+  clearChart(tag) {
+    if (this.charts[tag]) {
+      try {
+        this.charts[tag].destroy();
+        } catch (error) {
+        console.warn(`Failed to destroy ${tag} chart:`, error);
+      }
+      this.charts[tag] = null;
+    }
+  }
+
+  clearAllCharts() {
+    console.log('Clearing all charts...');
+    // Clear AWS chart
+    this.clearChart('aws');
+    // Clear Kubernetes chart
+    this.clearChart('kubernetes');
+    // Clear AI chart
+    this.clearChart('ai');
+    // Clear any other charts that might exist
+    Object.keys(this.charts).forEach(tag => {
+      this.clearChart(tag);
+    });
+    
+    // Clear chart containers visually
+    this.clearChartContainers();
+    console.log('All charts cleared');
+  }
+
+  clearChartContainers() {
+    // Clear AWS chart container - show empty chart canvas
+    const awsContainer = document.getElementById('radar-aws')?.parentElement;
+    if (awsContainer) {
+      awsContainer.innerHTML = '<canvas id="radar-aws" width="400" height="400"></canvas>';
+    }
+    
+    // Clear Kubernetes chart container - show empty chart canvas
+    const k8sContainer = document.getElementById('radar-kubernetes')?.parentElement;
+    if (k8sContainer) {
+      k8sContainer.innerHTML = '<canvas id="radar-kubernetes" width="400" height="400"></canvas>';
+    }
+    
+    // Clear AI chart container - show empty chart canvas
+    const aiContainer = document.getElementById('radar-ai')?.parentElement;
+    if (aiContainer) {
+      aiContainer.innerHTML = '<canvas id="radar-ai" width="400" height="400"></canvas>';
+    }
+  }
+
+  drawSingleChart(tag, labels, domains, filterTags) {
+    const canvas = document.getElementById(`radar-${tag}`);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const beforeData = domains.map(domain => this.calculateDomainField(domain, 'initial_maturity', filterTags));
+    const nowData = domains.map(domain => this.calculateDomainField(domain, 'present_maturity', filterTags));
+    const goalData = domains.map(domain => this.calculateDomainField(domain, 'desired_maturity', filterTags));
+
+    // Destroy existing chart properly
+    if (this.charts[tag]) {
+      try {
+        this.charts[tag].destroy();
+        } catch (error) {
+        console.warn(`Failed to destroy existing ${tag} chart:`, error);
+      }
+      this.charts[tag] = null;
+    }
+
+    const colors = {
+      before: { bg: 'rgba(54, 162, 235, 0.2)', border: 'rgba(54, 162, 235, 0.8)' },
+      now: { bg: 'rgba(255, 99, 132, 0.2)', border: 'rgba(255, 99, 132, 0.8)' },
+      goal: { bg: 'rgba(255, 205, 86, 0.2)', border: 'rgba(255, 205, 86, 0.8)' }
+    };
+
+    // Remove any existing size attributes and let CSS handle sizing
+    canvas.removeAttribute('width');
+    canvas.removeAttribute('height');
+    canvas.style.width = '';
+    canvas.style.height = '';
+    
+    this.charts[tag] = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Initial',
+            data: beforeData,
+            fill: true,
+            backgroundColor: colors.before.bg,
+            borderColor: colors.before.border,
+            borderWidth: 2,
+            pointBackgroundColor: colors.before.border
+          },
+          {
+            label: 'Present',
+            data: nowData,
+            fill: true,
+            backgroundColor: colors.now.bg,
+            borderColor: colors.now.border,
+            borderWidth: 2,
+            pointBackgroundColor: colors.now.border
+          },
+          {
+            label: 'Desired',
+            data: goalData,
+            fill: true,
+            backgroundColor: colors.goal.bg,
+            borderColor: colors.goal.border,
+            borderWidth: 2,
+            pointBackgroundColor: colors.goal.border
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 20,
+            bottom: 20,
+            left: 20,
+            right: 20
+          }
+        },
+        scales: {
+          r: {
+            min: 0,
+            max: 3,
+            ticks: {
+              stepSize: 1,
+              color: '#06B6D4'
+            },
+            grid: {
+              color: 'rgba(6, 182, 212, 0.2)'
+            },
+            angleLines: {
+              color: 'rgba(6, 182, 212, 0.3)'
+            },
+            pointLabels: {
+              color: '#38BDF8',
+              font: {
+                size: 14
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+            titleColor: '#06B6D4',
+            bodyColor: '#E5E7EB'
+          }
+        }
+      }
+    });
+    
+    // Create custom legend
+    this.createCustomLegend(tag);
+    
+    // Align components to chart's vertical axis
+    this.alignToChartAxis(tag);
+  }
+  
+  createCustomLegend(tag) {
+    const legendContainer = document.getElementById(`legend-${tag}`);
+    if (!legendContainer) return;
+    
+    const legendItems = [
+      { label: 'Initial', color: 'rgba(54, 162, 235, 0.8)' },
+      { label: 'Present', color: 'rgba(255, 99, 132, 0.8)' },
+      { label: 'Desired', color: 'rgba(255, 205, 86, 0.8)' }
+    ];
+    
+    legendContainer.innerHTML = legendItems.map(item => `
+      <div class="legend-item">
+        <div class="legend-color-box" style="background-color: ${item.color};"></div>
+        <span>${item.label}</span>
+            </div>
+    `).join('');
+  }
+  
+  alignToChartAxis(tag) {
+    // Wait for chart to be fully rendered
+    setTimeout(() => {
+      const canvas = document.getElementById(`radar-${tag}`);
+      const chartWrapper = document.getElementById(`chart-${tag}`);
+      const header = chartWrapper.querySelector('.chart-header');
+      const legend = chartWrapper.querySelector('.chart-legend');
+      
+      if (!canvas || !header || !legend) return;
+      
+      // Get the actual chart area from Chart.js
+      const chart = this.charts[tag];
+      if (!chart) return;
+      
+      const chartArea = chart.chartArea;
+      
+      if (chartArea) {
+        // Get canvas and wrapper dimensions
+        const canvasRect = canvas.getBoundingClientRect();
+        const wrapperRect = chartWrapper.getBoundingClientRect();
+        
+        // Calculate the actual chart center in pixels relative to the canvas
+        const chartCenterX = (chartArea.left + chartArea.right) / 2;
+        
+        // Calculate the offset from canvas left edge to chart center
+        const chartCenterOffsetFromCanvasLeft = chartCenterX;
+        
+        // Calculate where this should be positioned relative to the wrapper
+        const canvasLeftRelativeToWrapper = canvasRect.left - wrapperRect.left;
+        const targetCenterRelativeToWrapper = canvasLeftRelativeToWrapper + chartCenterOffsetFromCanvasLeft;
+        
+        // Calculate the offset needed to center header and legend on the chart's vertical axis
+        const wrapperCenterX = wrapperRect.width / 2;
+        const offsetX = targetCenterRelativeToWrapper - wrapperCenterX;
+        
+        console.log(`Chart ${tag}: chartCenterX=${chartCenterX}, offsetX=${offsetX}`);
+        
+        // Apply the offset to align header and legend with chart center
+        // Different offsets for AWS and Kubernetes charts
+        const leftOffset = tag === 'aws' ? 15 : 30; // AWS: 15px, Kubernetes: 30px
+        const headerOffsetX = offsetX - leftOffset;
+        const legendOffsetX = offsetX - leftOffset;
+        header.style.transform = `translateX(${headerOffsetX}px)`;
+        legend.style.transform = `translateX(${legendOffsetX}px)`;
+      }
+    }, 200);
+  }
+
+  createDomainPane(domain, domainIndex) {
+    const slugName = this.createSlug(domain.name);
+    const pane = document.createElement('div');
+    pane.id = `pane-${slugName}`;
+    pane.className = 'hidden';
+
+    // Check which single tag is selected
+    const showAws = this.selectedTags.includes('aws');
+    const showKubernetes = this.selectedTags.includes('kubernetes');
+    const noTagsSelected = this.selectedTags.length === 0;
+    
+    let scoresHtml = '';
+    
+    if (noTagsSelected) {
+      scoresHtml = `
+        <div class="space-x-4 font-semibold">
+          <span class="text-gray-400">No tags selected - please select AWS and/or Kubernetes tags to view maturity scores</span>
+                    </div>
+      `;
+    } else {
+      const beforeScore = this.calculateDomainField(domain, 'initial_maturity', this.selectedTags).toFixed(2);
+      const nowScore = this.calculateDomainField(domain, 'present_maturity', this.selectedTags).toFixed(2);
+      const goalScore = this.calculateDomainField(domain, 'desired_maturity', this.selectedTags).toFixed(2);
+      
+      const tagName = this.selectedTags.includes('aws') ? 'AWS Maturity' : 
+                     this.selectedTags.includes('kubernetes') ? 'Kubernetes Maturity' : 'AI Maturity';
+      
+      scoresHtml = `
+        <div class="space-x-4 font-semibold">
+          <span class="text-cyan-300">${tagName}:</span>
+          <span style="color:rgba(54,162,235,0.8)">Initial: ${beforeScore} / 3</span>
+          <span style="color:rgba(255,99,132,0.8)">Present: ${nowScore} / 3</span>
+          <span style="color:rgba(255,205,86,0.8)">Desired: ${goalScore} / 3</span>
+            </div>
+      `;
+    }
+
+    let html = `
+      <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 space-y-2 md:space-y-0">
+        ${scoresHtml}
+          </div>
+      <div class="overflow-x-auto">
+        <table class="controls-table table-fixed w-full border-collapse mb-8">
+          <thead>
+            <tr class="bg-gray-800">
+              <th class="border border-gray-600 p-3 text-left w-[40%]">Security Measure</th>
+              <th class="border border-gray-600 p-3 text-left w-[20%]">MITRE ATT&CK TTP</th>
+              <th class="border border-gray-600 p-3 text-left w-[10%]">Impact</th>
+              <th class="border border-gray-600 p-3 text-left w-[10%]">Effort</th>
+              <th class="border border-gray-600 p-3 text-left w-[10%]">Initial</th>
+              <th class="border border-gray-600 p-3 text-left w-[10%]">Present</th>
+              <th class="border border-gray-600 p-3 text-left w-[10%]">Desired</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    (domain.security_controls || []).forEach((control) => {
+      const filteredActionItems = this.filterActionItemsByTags(control.action_items || [], this.selectedTags);
+      
+      if (filteredActionItems.length > 0) {
+        html += `
+          <tr class="bg-gray-800">
+            <td colspan="7" class="border border-gray-600 p-3 font-mono text-cyan-300 break-words">
+              ${this.escapeHtml(control.code || 'N/A')}: ${this.escapeHtml(control.text || 'No description')}
+            </td>
+          </tr>
+        `;
+
+        filteredActionItems.forEach((actionItem) => {
+          const measureId = actionItem.measure_id || 'No ID';
+          const scoringData = this.scoring?.measures?.[measureId] || {};
+          
+          // Check if ANY maturity score is undefined (-1) - show warning when any are undefined
+          const hasUndefinedScores = (scoringData.initial_maturity === -1 || scoringData.initial_maturity === undefined) || 
+                                   (scoringData.present_maturity === -1 || scoringData.present_maturity === undefined) || 
+                                   (scoringData.desired_maturity === -1 || scoringData.desired_maturity === undefined);
+          
+          const hasUndefinedValues = actionItem.impact === 'undefined' || 
+                                   actionItem.effort === 'undefined' || 
+                                   actionItem.initial_maturity === 'undefined' || 
+                                   actionItem.present_maturity === 'undefined' || 
+                                   actionItem.desired_maturity === 'undefined';
+          
+          const rowClass = hasUndefinedValues ? 'hover:bg-gray-800 transition-colors undefined-measure' : 'hover:bg-gray-800 transition-colors';
+          // All user scoring data is considered custom (user-specific)
+          
+          const commentText = actionItem.comment || '';
+          const hasComment = commentText.trim().length > 0;
+          
+          html += `
+            <tr class="${rowClass}">
+              <td class="border border-gray-600 p-3 break-words">
+                <div class="relative ${hasComment ? 'comment-hover-container' : ''}">
+                  <span class="${hasComment ? 'cursor-help' : ''}">
+                    ${actionItem.measure || 'No measure specified'}
+                  </span>
+                  ${hasComment ? `
+                    <div class="comment-tooltip">
+                      <div class="whitespace-pre-wrap select-text">${commentText}</div>
+                    </div>
+                  ` : ''}
+                </div>
+                <div class="text-xs text-gray-500 mt-1">ID: ${measureId}</div>
+                ${hasUndefinedScores ? '<div class="text-xs text-yellow-400 mt-1">⚠️ Not applicable. Excluded from assessment.</div>' : ''}
+
+              </td>
+              <td class="border border-gray-600 p-3 break-words align-top">${this.createLinkedTtpLinks(actionItem.linked_ttps)}</td>
+              <td class="border border-gray-600 p-3">
+                <select class="scoring-dropdown w-full bg-gray-700 text-white rounded px-2 py-1 text-sm" 
+                        data-measure-id="${measureId}" data-field="impact">
+                  <option value="low" ${scoringData.impact === 'low' ? 'selected' : ''}>Low</option>
+                  <option value="medium" ${scoringData.impact === 'medium' ? 'selected' : ''}>Medium</option>
+                  <option value="high" ${scoringData.impact === 'high' ? 'selected' : ''}>High</option>
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select class="scoring-dropdown w-full bg-gray-700 text-white rounded px-2 py-1 text-sm" 
+                        data-measure-id="${measureId}" data-field="effort">
+                  <option value="low" ${scoringData.effort === 'low' ? 'selected' : ''}>Low</option>
+                  <option value="medium" ${scoringData.effort === 'medium' ? 'selected' : ''}>Medium</option>
+                  <option value="high" ${scoringData.effort === 'high' ? 'selected' : ''}>High</option>
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select class="scoring-dropdown w-full bg-gray-700 text-white rounded px-2 py-1 text-sm" 
+                        data-measure-id="${measureId}" data-field="initial_maturity">
+                  <option value="-1" ${scoringData.initial_maturity === -1 ? 'selected' : ''}>Not Applicable</option>
+                  <option value="0" ${scoringData.initial_maturity === 0 ? 'selected' : ''}>No Adoption</option>
+                  <option value="1" ${scoringData.initial_maturity === 1 ? 'selected' : ''}>Low Adoption</option>
+                  <option value="2" ${scoringData.initial_maturity === 2 ? 'selected' : ''}>Medium Adoption</option>
+                  <option value="3" ${scoringData.initial_maturity === 3 ? 'selected' : ''}>High Adoption</option>
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select class="scoring-dropdown w-full bg-gray-700 text-white rounded px-2 py-1 text-sm" 
+                        data-measure-id="${measureId}" data-field="present_maturity">
+                  <option value="-1" ${scoringData.present_maturity === -1 ? 'selected' : ''}>Not Applicable</option>
+                  <option value="0" ${scoringData.present_maturity === 0 ? 'selected' : ''}>No Adoption</option>
+                  <option value="1" ${scoringData.present_maturity === 1 ? 'selected' : ''}>Low Adoption</option>
+                  <option value="2" ${scoringData.present_maturity === 2 ? 'selected' : ''}>Medium Adoption</option>
+                  <option value="3" ${scoringData.present_maturity === 3 ? 'selected' : ''}>High Adoption</option>
+                </select>
+              </td>
+              <td class="border border-gray-600 p-3">
+                <select class="scoring-dropdown w-full bg-gray-700 text-white rounded px-2 py-1 text-sm" 
+                        data-measure-id="${measureId}" data-field="desired_maturity">
+                  <option value="-1" ${scoringData.desired_maturity === -1 ? 'selected' : ''}>Not Applicable</option>
+                  <option value="0" ${scoringData.desired_maturity === 0 ? 'selected' : ''}>No Adoption</option>
+                  <option value="1" ${scoringData.desired_maturity === 1 ? 'selected' : ''}>Low Adoption</option>
+                  <option value="2" ${scoringData.desired_maturity === 2 ? 'selected' : ''}>Medium Adoption</option>
+                  <option value="3" ${scoringData.desired_maturity === 3 ? 'selected' : ''}>High Adoption</option>
+                </select>
+              </td>
+            </tr>
+          `;
+        });
+      }
+    });
+
+    html += '</tbody></table></div>';
+    pane.innerHTML = html;
+    
+    return pane;
+  }
+
+  // Create links for TTPs from database relationships
+  createLinkedTtpLinks(linkedTtps) {
+    if (!linkedTtps || !Array.isArray(linkedTtps) || linkedTtps.length === 0) {
+      return '<span class="text-gray-500">No TTPs linked</span>';
+    }
+    
+    return linkedTtps.map(ttp => {
+      const displayText = `${ttp.tactic}: ${ttp.technique}`;
+      return `<a href="mitre.html?slug=${ttp.slug}" target="_blank" class="inline-block bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded text-xs mr-1 mb-1 cursor-pointer transition-colors">${this.escapeHtml(displayText)}</a>`;
+    }).join('');
+  }
+
+  createMitreLink(mitreValue) {
+    if (!mitreValue || mitreValue === 'undefined' || mitreValue === 'N/A') {
+      return this.escapeHtml(mitreValue || 'N/A');
+    }
+    
+    if (Array.isArray(mitreValue)) {
+      return mitreValue.map(singleValue => this.createSingleMitreLink(singleValue)).join('<br>');
+    }
+    
+    return this.createSingleMitreLink(mitreValue);
+  }
+
+  createSingleMitreLink(mitreValue) {
+    if (!mitreValue || mitreValue === 'undefined' || mitreValue === 'N/A') {
+      return this.escapeHtml(mitreValue || 'N/A');
+    }
+    
+    const parts = mitreValue.split(':');
+    let slug;
+    
+    if (parts.length !== 2) {
+      // Fallback for malformed MITRE values
+      slug = this.convertToSlugFormat(mitreValue.replace(/[:/]/g, ''));
+    } else {
+      const tactic = parts[0].trim();
+      const technique = parts[1].trim();
+      slug = this.convertToSlugFormat(tactic) + '/' + this.convertToSlugFormat(technique);
+    }
+    
+    const displayValue = mitreValue.replace(/\s+/g, ''); // Remove all spaces
+    return `<a href="mitre/${slug}" target="_blank" class="text-blue-400 hover:text-blue-300 underline">${this.escapeHtml(displayValue)}</a>`;
+  }
+
+  convertToKebabCase(str) {
+    return str
+      // Insert dash before uppercase letters that follow lowercase letters
+      .replace(/([a-z])([A-Z])/g, '$1-$2')
+      // Replace spaces with dashes
+      .replace(/\s+/g, '-')
+      // Convert to lowercase
+      .toLowerCase()
+      // Remove any duplicate dashes
+      .replace(/-+/g, '-')
+      // Remove leading/trailing dashes
+      .replace(/^-|-$/g, '');
+  }
+
+  // Convert to slug format matching backend generateSlug function
+  convertToSlugFormat(str) {
+    return str.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
+      }
+
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+  activateTab(slugName) {
+    const tabs = document.querySelectorAll('[id^="tab-"]');
+    const panes = document.querySelectorAll('[id^="pane-"]');
+
+    tabs.forEach(tab => {
+      const isActive = tab.id === `tab-${slugName}`;
+      tab.classList.toggle('border-b-2', isActive);
+      tab.classList.toggle('border-cyan-400', isActive);
+      tab.classList.toggle('text-cyan-300', isActive);
+      tab.classList.toggle('text-gray-400', !isActive);
+    });
+
+    panes.forEach(pane => {
+      const isActive = pane.id === `pane-${slugName}`;
+      pane.classList.toggle('hidden', !isActive);
+    });
+
+    // Explicitly handle dashboard pane visibility
+    const dashboardPane = document.getElementById('pane-dashboard');
+    if (dashboardPane) {
+      if (slugName === 'dashboard') {
+        dashboardPane.classList.remove('hidden');
+        setTimeout(() => this.drawCharts(), 100);
+      } else {
+        dashboardPane.classList.add('hidden');
+      }
+    }
+  }
+
+  hasMeasuresForSelectedPlatform(domain) {
+    // Check if domain has any measures for the currently selected platform
+    if (!this.selectedTags || this.selectedTags.length === 0) {
+      return true; // Show all tabs if no platform selected
+    }
+    
+    return (domain.security_controls || []).some(control => {
+      return (control.action_items || []).some(item => {
+        return this.selectedTags.includes(item.tags);
+      });
+    });
+  }
+
+  refreshTabs() {
+    const tabsElement = document.getElementById('tabs');
+    const domains = this.config.security_domains || [];
+    
+    // Clear existing tabs
+    tabsElement.innerHTML = '';
+    
+    // Create filtered tabs
+    const filteredDomains = domains.filter(domain => this.hasMeasuresForSelectedPlatform(domain));
+    const tabs = [
+      { name: 'Dashboard', slug: 'dashboard' },
+      ...filteredDomains.map(domain => ({
+        name: domain.name,
+        slug: this.createSlug(domain.name)
+      }))
+    ];
+
+    // If no domains have measures for selected platform, show message
+    if (filteredDomains.length === 0 && domains.length > 0) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'px-4 py-2 text-gray-500 text-sm';
+      messageDiv.textContent = 'No measures available for selected platform';
+      tabsElement.appendChild(messageDiv);
+    }
+
+    tabs.forEach((tab, index) => {
+      const button = document.createElement('button');
+      button.id = `tab-${tab.slug}`;
+      button.textContent = tab.name;
+      button.className = 'px-4 py-2 cursor-pointer hover:text-cyan-400 transition-colors whitespace-nowrap nav-inactive';
+      button.onclick = () => this.activateTab(tab.slug);
+      tabsElement.appendChild(button);
+
+      // Activate first tab (Dashboard) if it's the first one
+      if (index === 0) {
+        this.activateTab(tab.slug);
+      }
+    });
+  }
+
+  initApp() {
+    console.log('Initializing app with config:', this.config);
+    const domains = this.config.security_domains || [];
+    console.log('Found domains:', domains.length);
+    
+    // Setup comment tooltips after rendering
+    setTimeout(() => this.setupCommentTooltips(), 100);
+    
+    const tabsElement = document.getElementById('tabs');
+    const panesElement = document.getElementById('panes');
+    
+    // Clear existing content
+    tabsElement.innerHTML = '';
+    panesElement.innerHTML = '';
+
+    // Create dashboard pane
+    const dashboardPane = document.createElement('div');
+    dashboardPane.id = 'pane-dashboard';
+    dashboardPane.innerHTML = `
+      <div class="mb-0">
+        <!-- Chart Header -->
+        <div id="chart-header" class="text-center mb-4">
+          <h2 id="selected-platform" class="text-2xl font-bold text-cyan-300">AWS</h2>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+          <div id="chart-aws" class="chart hidden">
+            <canvas id="radar-aws"></canvas>
+            <div class="chart-legend" id="legend-aws"></div>
+          </div>
+          <div id="chart-kubernetes" class="chart hidden">
+            <canvas id="radar-kubernetes"></canvas>
+            <div class="chart-legend" id="legend-kubernetes"></div>
+          </div>
+          <div id="chart-ai" class="chart hidden">
+            <canvas id="radar-ai"></canvas>
+            <div class="chart-legend" id="legend-ai"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    panesElement.appendChild(dashboardPane);
+
+    // Create domain panes
+    domains.forEach((domain, index) => {
+      const pane = this.createDomainPane(domain, index);
+      panesElement.appendChild(pane);
+    });
+
+    // Set up tag filter event listeners
+    const self = this;
+    document.addEventListener('change', (e) => {
+      if (e.target.classList.contains('tag-filter')) {
+        self.updateTagSelection();
+        self.updateChartHeader();
+        // Sync sidebar menu state when platform changes
+        // IMPORTANT: This ensures attack simulation items are cleared when maturity items are selected
+        if (typeof syncSidebarMenuState === 'function') {
+          syncSidebarMenuState();
+        }
+      }
+      // Handle scoring dropdown changes
+      if (e.target.classList.contains('scoring-dropdown')) {
+        console.log('🎯 Dropdown change detected!', e.target);
+        self.handleScoringChange(e.target);
+      }
+    });
+
+    // Add window resize listener for dynamic scaling
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        console.log('Window resized, updating charts...');
+        self.updateChartsDisplay();
+      }, 300);
+    });
+
+    // Create tabs - filter out domains with no measures for selected platform
+    this.refreshTabs();
+
+    // Initialize charts display and draw initial charts
+    setTimeout(() => {
+      this.updateChartsDisplay();
+      this.drawCharts();
+    }, 50);
+  }
+
+  setupCommentTooltips() {
+    // Add improved hover behavior for comment tooltips
+    const containers = document.querySelectorAll('.comment-hover-container');
+    
+    containers.forEach(container => {
+      let hideTimeout;
+      
+      const showTooltip = () => {
+        clearTimeout(hideTimeout);
+        const tooltip = container.querySelector('.comment-tooltip');
+        if (tooltip) {
+          tooltip.style.opacity = '1';
+          tooltip.style.visibility = 'visible';
+          tooltip.style.pointerEvents = 'auto';
+        }
+      };
+      
+      const hideTooltip = () => {
+        hideTimeout = setTimeout(() => {
+          const tooltip = container.querySelector('.comment-tooltip');
+          if (tooltip) {
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.pointerEvents = 'none';
+          }
+        }, 150); // Small delay before hiding
+      };
+      
+      // Show on hover over text
+      container.addEventListener('mouseenter', showTooltip);
+      container.addEventListener('mouseleave', hideTooltip);
+      
+      // Keep visible when hovering over tooltip
+      const tooltip = container.querySelector('.comment-tooltip');
+      if (tooltip) {
+        tooltip.addEventListener('mouseenter', showTooltip);
+        tooltip.addEventListener('mouseleave', hideTooltip);
+      }
+    });
+  }
+
+
+}
+
+// Dashboard will be initialized by initializeDashboard() function
+  </script>
+
+</body>
+</html>

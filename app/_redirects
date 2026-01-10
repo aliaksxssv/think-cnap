@@ -1,0 +1,10 @@
+# Cloudflare Pages Redirects Configuration
+
+# API routes to Functions
+/api/* /api/:splat 200
+
+# MITRE TTP pages - redirect to mitre.html with slug parameter
+/mitre/* /mitre.html?slug=:splat 200
+
+# SPA fallback - serve index.html for all other routes
+/* /index.html 200

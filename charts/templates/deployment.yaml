@@ -69,6 +69,7 @@ spec:
                 secretKeyRef:
                   name: {{ if .Values.secrets.existingSecret }}{{ .Values.secrets.existingSecret }}{{ else }}{{ include "think-cnap.fullname" . }}-secrets{{ end }}
                   key: googleClientId
+            # Note: GOOGLE_CLIENT_ID is also injected into HTML files at runtime via inject-env.sh
           resources:
             {{- toYaml .Values.resources.app | nindent 12 }}
           securityContext:

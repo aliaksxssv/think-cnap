@@ -1,0 +1,648 @@
+/* Mobile App Specific Styles */
+
+/* Prevent text selection on touch */
+* {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection for inputs and content areas */
+input, textarea, [contenteditable] {
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
+}
+
+/* Remove tap highlight on iOS */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure full height layout */
+html, body {
+  height: 100vh;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Loading screen */
+#loading-screen {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+/* Auth Modal Enhancements */
+#auth-modal .bg-gray-800 {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(55, 65, 81, 0.3);
+}
+
+/* Form inputs with better mobile UX */
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+  font-size: 16px; /* Prevents zoom on iOS */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:focus {
+  transform: scale(1.02);
+  transition: transform 0.2s ease;
+}
+
+/* Button interactions */
+button {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Header styling */
+header {
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Main content area */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Important for flex children */
+  overflow: hidden; /* Prevent main from scrolling, let children handle it */
+}
+
+/* Specific override for domains view in main */
+#main-app main #domains-view {
+  overflow: visible !important; /* Allow domains list to scroll */
+}
+
+/* Dashboard view layout */
+#dashboard-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Tag selection section - fixed height */
+.tag-selection-section {
+  flex-shrink: 0;
+}
+
+/* Chart carousel - flexible height */
+#chart-carousel-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Remove fixed min/max heights for true flexible scaling */
+  min-height: 0;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.5rem 1rem 0.5rem;
+  /* Ensure it takes up available space between platforms and footer */
+  height: 100%;
+}
+
+/* Removed duplicate main rule - using the one above */
+
+/* Dashboard view - full content area */
+#dashboard-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Domains view - full content area */
+#domains-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Prevent this container from scrolling */
+  min-height: 0; /* Allow flex children to shrink */
+  position: relative; /* Ensure proper positioning context */
+}
+
+/* Grid layout handled by HTML classes */
+
+/* Measure items - dynamic sizing based on content */
+.bg-gray-800.rounded-lg.p-3.cursor-pointer {
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+}
+
+/* Hidden class to completely hide views */
+.hidden {
+  display: none !important;
+}
+
+/* Controls list scrolling */
+#controls-list {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px); /* Ensure it doesn't take full height */
+}
+
+/* Domains list scrolling - exact same approach as controls */
+#domains-list {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 232px); /* Account for main header + domains header + footer + padding */
+}
+
+
+/* Measures list scrolling - more specific selector */
+#domains-view #measures-list {
+  overflow-y: auto !important;
+  height: calc(100vh - 200px) !important; /* Fixed height instead of max-height */
+  flex-shrink: 0 !important; /* Prevent flex shrinking */
+  max-height: calc(100vh - 200px) !important; /* Additional constraint */
+  flex-grow: 0 !important; /* Prevent flex growing */
+  flex-basis: auto !important; /* Reset flex basis */
+  position: relative !important; /* Ensure proper positioning */
+  flex: none !important; /* Override any flex shorthand */
+}
+
+/* Fallback for measures list */
+#measures-list {
+  overflow-y: auto !important;
+  /* Remove fixed height constraints to allow dynamic sizing */
+}
+
+#measures-list .grid {
+  /* Remove height constraints to allow dynamic sizing */
+}
+
+/* Measure details scrolling */
+#measure-details {
+  overflow-y: auto !important;
+  height: calc(100vh - 120px) !important; /* Account for header and footer */
+  flex: 1 !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - 120px) !important;
+}
+
+/* Measure details grid container */
+#measure-details .grid {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+/* Larger dropdown values */
+select {
+  font-size: 16px !important;
+  padding: 12px 16px !important;
+  min-height: 48px !important;
+}
+
+select option {
+  font-size: 16px !important;
+  padding: 8px 12px !important;
+}
+
+
+#controls-list .grid {
+  /* Remove height constraints to allow dynamic sizing */
+}
+
+/* Quick stats section - fixed height */
+.quick-stats-section {
+  flex-shrink: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* Chart carousel container */
+#chart-carousel {
+  touch-action: pan-x;
+  will-change: transform;
+}
+
+/* Chart slides */
+.chart-slide {
+  backface-visibility: hidden;
+  transform: translateZ(0); /* Hardware acceleration */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.chart-slide canvas {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Chart canvas responsive sizing with viewport scaling */
+canvas {
+  max-width: 100% !important;
+  /* Let inline styles control width and height */
+  display: block !important;
+}
+
+/* Chart container sizing with viewport scaling */
+.chart-slide > div {
+  width: 100%;
+  /* Accommodate 90vw chart plus legend and dots */
+  max-width: 93vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  /* Minimal padding for 75vw chart */
+  padding: 0 2px;
+}
+
+/* Chart title spacing with responsive scaling */
+.chart-slide h3 {
+  margin-bottom: 0.1rem;
+  flex-shrink: 0;
+  /* Responsive font size */
+  font-size: clamp(1rem, 4vw, 1.25rem);
+}
+
+/* Chart legend spacing */
+.chart-slide .legend {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+/* Custom legend styling */
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  margin: 0 0.5rem;
+}
+
+.chart-legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.375rem;
+  flex-shrink: 0;
+}
+
+/* Custom axis labels with responsive scaling */
+.custom-labels-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.custom-axis-label {
+  position: absolute;
+  /* 2.5vw font size as requested */
+  font-size: 2.5vw;
+  color: #E5E7EB;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.1;
+  /* Scale max-width with screen width */
+  max-width: 22vw;
+  word-wrap: break-word;
+  white-space: normal;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  /* Better multiline support - use block instead of flex to allow natural text flow */
+  display: block;
+  /* Ensure proper spacing for multiline text */
+  padding: 2px;
+  /* Force text to wrap */
+  overflow-wrap: break-word;
+  hyphens: auto;
+  /* Ensure labels stay within bounds */
+  z-index: 10;
+  /* Make background transparent */
+  background: transparent;
+  border: none;
+}
+
+/* Multiline text support for axis labels */
+.custom-axis-label br {
+  line-height: 1.1;
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+
+/* Swipe indicators */
+#swipe-left, #swipe-right {
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  font-weight: bold;
+}
+
+/* Bottom navigation - always visible */
+nav {
+  flex-shrink: 0;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 10;
+  background-color: #1f2937; /* Ensure solid background */
+}
+
+nav button {
+  min-height: 28px;
+  transition: all 0.2s ease;
+  padding: 1px 4px;
+}
+
+nav button span {
+  font-size: 0.6rem;
+}
+
+nav button.active,
+nav button:active {
+  color: #22d3ee;
+  background-color: rgba(34, 211, 238, 0.1);
+  border-radius: 8px;
+}
+
+/* Tag selection */
+label {
+  transition: all 0.2s ease;
+}
+
+label:active {
+  transform: scale(0.98);
+  background-color: rgba(55, 65, 81, 0.8) !important;
+}
+
+/* Progress bar animation */
+#overall-progress {
+  transition: width 1s ease-out;
+}
+
+/* Domains list - specific for mobile app domains view only */
+#main-app main #domains-view #domains-list {
+  padding-bottom: 20px !important; /* Minimal padding for comfortable scrolling */
+  overflow-y: auto !important;
+  flex: 1 !important;
+  height: calc(100vh - 200px) !important; /* Account for main header + domains header + footer + main padding */
+  max-height: calc(100vh - 200px) !important; /* Prevent overflow */
+  min-height: 0 !important; /* Allow flex shrinking */
+  padding: 1rem !important; /* Override p-4 class */
+  -webkit-overflow-scrolling: touch !important; /* Smooth scrolling on iOS */
+  overscroll-behavior: contain !important; /* Prevent scroll chaining */
+  scroll-behavior: smooth !important; /* Smooth scrolling */
+  position: relative !important; /* Ensure proper positioning */
+}
+
+/* Grid inside domains list - specific for mobile app */
+#main-app main #domains-view #domains-list .grid {
+  min-height: 100% !important; /* Ensure grid takes full height */
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important; /* Override gap-2 */
+}
+
+.domain-card {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  transition: all 0.2s ease;
+}
+
+.domain-card:active {
+  transform: scale(0.98);
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+}
+
+/* Chart legends mobile optimization */
+.chart-legend {
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.chart-legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 0.375rem;
+  flex-shrink: 0;
+}
+
+/* Error states */
+.error-message {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.warning-message {
+  background: linear-gradient(135deg, #d97706 0%, #92400e 100%);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.success-message {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border: 1px solid rgba(5, 150, 105, 0.3);
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Smooth scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+/* iOS safe area handling */
+@supports (padding-top: env(safe-area-inset-top)) {
+  header {
+    padding-top: calc(0.75rem + env(safe-area-inset-top));
+  }
+  
+  nav {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .bg-gray-800 { background-color: #000000; }
+  .bg-gray-700 { background-color: #1a1a1a; }
+  .text-gray-400 { color: #cccccc; }
+  .border-gray-700 { border-color: #444444; }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode adjustments for better battery life on OLED */
+@media (prefers-color-scheme: dark) {
+  .bg-gray-900 { background-color: #000000; }
+  .bg-gray-800 { background-color: #0a0a0a; }
+}
+
+/* Landscape orientation adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  #chart-carousel {
+    height: 300px;
+  }
+  
+  nav {
+    padding: 0.25rem 1rem;
+  }
+  
+  nav button {
+    min-height: 24px;
+  }
+  
+  header {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 320px) {
+  .text-lg { font-size: 1rem; }
+  .text-2xl { font-size: 1.5rem; }
+  
+  nav button span {
+    font-size: 0.55rem;
+  }
+  
+  /* Chart scales automatically with screen width */
+  
+  .custom-axis-label {
+    font-size: 2.5vw !important;
+    max-width: 22vw !important;
+    line-height: 1.0 !important;
+  }
+  
+  .quick-stats-section {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Small screens */
+@media (max-width: 375px) {
+  .custom-axis-label {
+    font-size: 2.5vw !important;
+    max-width: 22vw !important;
+    line-height: 1.05 !important;
+  }
+}
+
+/* Medium screens */
+@media (min-width: 414px) {
+  .custom-axis-label {
+    font-size: 2.5vw !important;
+    max-width: 22vw !important;
+  }
+}
+
+/* Large screens */
+@media (min-width: 768px) {
+  .custom-axis-label {
+    font-size: 2.5vw !important;
+    max-width: 22vw !important;
+  }
+}
+
+/* Medium screens */
+@media (min-width: 375px) and (max-width: 414px) {
+  /* Chart scales automatically with screen width */
+}
+
+/* Large screens */
+@media (min-width: 415px) {
+  /* Chart scales automatically with screen width */
+}
+
+/* Radio Button Styles - Match Desktop App */
+.tag-filter {
+  pointer-events: auto !important;
+  z-index: 1000 !important;
+  position: relative !important;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #6b7280;
+  border-radius: 4px;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tag-filter:checked {
+  border-color: #22d3ee;
+  background-color: #22d3ee;
+}
+
+.tag-filter:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #1f2937;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.tag-filter:hover {
+  border-color: #22d3ee;
+}
+
+.tag-selection-compact {
+  pointer-events: auto !important;
+  z-index: 999 !important;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

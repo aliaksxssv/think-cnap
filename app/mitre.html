@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MITRE TTP - ThinkCNAP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="auth.js"></script>
+    <style>
+        .loading {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Hidden auth modal (required by auth system) -->
+    <div id="auth-modal" class="hidden"></div>
+    
+    <!-- Main content wrapper (required by auth system) -->
+    <div id="main-content">
+        <div class="container mx-auto px-4 py-8">
+        <!-- Loading State -->
+        <div id="loading" class="text-center">
+            <div class="loading bg-gray-700 h-8 w-64 mx-auto rounded mb-4"></div>
+            <div class="loading bg-gray-700 h-4 w-48 mx-auto rounded mb-2"></div>
+            <div class="loading bg-gray-700 h-4 w-32 mx-auto rounded"></div>
+        </div>
+
+        <!-- Content -->
+        <div id="content" class="hidden">
+            <!-- Header -->
+            <div class="mb-8">
+                <div class="flex justify-between items-start mb-4">
+                    <nav class="text-sm text-gray-400">
+                        <a href="/" class="hover:text-white">Home</a>
+                        <span class="mx-2">›</span>
+                        <span>MITRE TTP</span>
+                    </nav>
+                    <!-- User Dropdown -->
+                    <div id="user-info" class="flex items-center space-x-4">
+                        <!-- User dropdown will be rendered here by auth.js -->
+                    </div>
+                </div>
+                <h1 id="ttp-title" class="text-4xl font-bold text-cyan-400 mb-2"></h1>
+            </div>
+
+            <!-- Attack Scenarios -->
+            <div id="examples-section" class="space-y-6">
+                <div id="examples-container" class="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-4">
+                    <h2 class="text-2xl font-bold text-cyan-400 mb-2">Attack Scenarios</h2>
+                    <hr class="border-cyan-400 mb-6">
+                    <div id="examples-list" class="space-y-4">
+                        <!-- Examples will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Examples Message -->
+            <div id="no-examples" class="hidden text-center py-8">
+                <p class="text-gray-400">No exploitation examples available for this TTP.</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="hidden text-center py-8">
+            <div class="bg-red-900 border border-red-700 rounded-lg p-6 max-w-md mx-auto">
+                <h2 class="text-xl font-semibold text-red-400 mb-2">TTP Not Found</h2>
+                <p class="text-gray-300 mb-4">The requested MITRE TTP could not be found.</p>
+                <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Return to Dashboard
+                </a>
+            </div>
+                </div>
+    </div>
+    </div> <!-- Close main-content -->
+    
+    <script>
+        class MitreTtpPage {
+            constructor() {
+                this.slug = this.extractSlugFromUrl();
+                this.init();
+            }
+
+            extractSlugFromUrl() {
+                console.log('=== DEBUG: Extracting slug ===');
+                console.log('Current URL:', window.location.href);
+                console.log('Current search:', window.location.search);
+                
+                // Get slug from URL parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const slug = urlParams.get('slug');
+                console.log('Slug from URL param:', slug);
+                
+                return slug;
+            }
+
+            async init() {
+                if (!this.slug) {
+                    console.log('No slug provided');
+                    this.showError();
+                    return;
+                }
+
+                try {
+                    await this.loadTtpData();
+                } catch (error) {
+                    console.error('Error loading TTP data:', error);
+                    this.showError();
+                }
+            }
+
+            async loadTtpData() {
+                console.log('=== DEBUG: Loading TTP data ===');
+                console.log('Slug:', this.slug);
+                
+                // Fetch TTP data by slug
+                const apiUrl = `/api/mitre/by-slug/${this.slug}`;
+                console.log('Fetching TTP from:', apiUrl);
+                
+                const response = await fetch(apiUrl);
+                console.log('TTP Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('TTP API Error:', errorText);
+                    throw new Error('TTP not found');
+                }
+
+                const ttp = await response.json();
+                console.log('TTP Data:', ttp);
+                
+                // Fetch examples
+                const examplesUrl = `/api/mitre/${ttp.id}/examples`;
+                console.log('Fetching examples from:', examplesUrl);
+                
+                const examplesResponse = await fetch(examplesUrl);
+                console.log('Examples Response status:', examplesResponse.status);
+                
+                const examples = examplesResponse.ok ? await examplesResponse.json() : [];
+                console.log('Examples Data:', examples);
+
+                this.renderTtp(ttp, examples);
+            }
+
+            renderTtp(ttp, examples) {
+                // Update title in "Tactic: Technique" format
+                document.getElementById('ttp-title').textContent = `${ttp.tactic}: ${ttp.technique}`;
+                document.title = `${ttp.tactic}: ${ttp.technique} - ThinkCNAP`;
+
+                // Render examples
+                if (examples && examples.length > 0) {
+                    this.renderExamples(examples);
+                    document.getElementById('examples-section').classList.remove('hidden');
+                } else {
+                    document.getElementById('no-examples').classList.remove('hidden');
+                }
+
+                // Show content, hide loading
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('content').classList.remove('hidden');
+            }
+
+            renderExamples(examples) {
+                const container = document.getElementById('examples-list');
+                
+                examples.forEach(example => {
+                    const exampleDiv = document.createElement('div');
+                    exampleDiv.className = 'mb-6';
+                    
+                    exampleDiv.innerHTML = `
+                        <h3 class="text-xl font-semibold text-green-400 mb-3">${this.escapeHtml(example.title)}</h3>
+                        ${example.description ? `<p class="text-gray-300 mb-4">${this.escapeHtml(example.description)}</p>` : ''}
+                        <div class="bg-gray-800 text-yellow-400 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto border border-gray-400 text-left h-auto min-h-fit flex flex-col justify-start">
+                            <code class="block text-left m-0">${this.escapeHtml(example.code_block)}</code>
+                        </div>
+                    `;
+                    
+                    container.appendChild(exampleDiv);
+                });
+            }
+
+            showError() {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize authentication first
+            if (!window.auth && typeof ThinkCNAPAuth !== 'undefined') {
+                window.auth = new ThinkCNAPAuth();
+                
+                // Wait for auth to be fully initialized
+                while (!window.auth.isInitialized) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+            
+            // Ensure auth UI is updated if user is signed in
+            if (window.auth && window.auth.currentUser) {
+                window.auth.updateAuthUI('signed-in');
+            }
+            
+            // Initialize the MITRE TTP page
+            new MitreTtpPage();
+        });
+    </script>
+</body>
+</html>
