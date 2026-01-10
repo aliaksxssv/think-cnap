@@ -1,0 +1,17 @@
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (14, 'SEC01-BP01-AWS-001', 3) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (15, 'SEC02-BP01-AWS-001', 4) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (16, 'SEC04-BP02-AWS-001', 5) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (27, 'SEC02-BP05-AWS-001', 12) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (28, 'SEC02-BP05-AWS-002', 12) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (29, 'SEC05-BP03-AWS-001', 10) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (30, 'SEC05-BP03-AWS-001', 13) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (34, 'SEC04-BP04-K8S-001', 11) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (36, 'SEC04-BP01-AWS-001', 1) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (46, 'SEC04-BP04-K8S-002', 11) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (47, 'SEC04-BP01-K8S-001', 1) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (54, 'SEC04-BP02-K8S-001', 5) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (55, 'SEC04-BP03-K8S-001', 8) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (56, 'SEC04-BP03-K8S-001', 9) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (57, 'SEC04-BP03-K8S-001', 11) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (58, 'SEC04-BP03-AWS-001', 6) ON CONFLICT (measure_id, ttp_id) DO NOTHING;
+INSERT INTO measure_ttp_relationships (id, measure_id, ttp_id) VALUES (59, 'SEC04-BP03-AWS-001', 7) ON CONFLICT (measure_id, ttp_id) DO NOTHING;

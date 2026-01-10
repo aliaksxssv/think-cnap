@@ -1,0 +1,26 @@
+# Helm
+.cr-release-packages/
+index.yaml
+*.tgz
+
+# Docker
+.dockerignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# SQL files (backups and temp files)
+sql/**/*.sql.bak
+sql/**/*.tmp
+sql/**/*.json

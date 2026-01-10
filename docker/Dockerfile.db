@@ -1,0 +1,30 @@
+# PostgreSQL database container for ThinkCNAP
+FROM postgres:16-alpine
+
+# Install additional tools
+RUN apk add --no-cache bash
+
+# Create directories
+RUN mkdir -p /docker-entrypoint-initdb.d /migrations /seed-data
+
+# Copy migrations
+COPY sql/migrations/ /migrations/
+
+# Copy seed data (if available)
+COPY sql/seed-data/ /seed-data/ 2>/dev/null || true
+
+# Copy initialization script
+COPY scripts/init-db-postgres.sh /docker-entrypoint-initdb.d/01-init-db.sh
+RUN chmod +x /docker-entrypoint-initdb.d/01-init-db.sh
+
+# PostgreSQL environment variables (overridden by Kubernetes)
+# These are defaults for local development only
+ENV POSTGRES_DB=thinkcnap
+ENV POSTGRES_USER=thinkcnap
+ENV POSTGRES_PASSWORD=change-me-in-production
+ENV PGDATA=/var/lib/postgresql/data/pgdata
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Use default PostgreSQL entrypoint which runs scripts in /docker-entrypoint-initdb.d
