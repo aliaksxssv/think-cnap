@@ -36,11 +36,9 @@ COPY --from=builder /app .
 COPY docker/inject-env.sh /inject-env.sh
 RUN chmod +x /inject-env.sh
 
-# Create non-root user (check if group/user already exists)
-RUN (getent group 1000 >/dev/null 2>&1 || addgroup -g 1000 appuser) && \
-    (getent passwd 1000 >/dev/null 2>&1 || adduser -D -u 1000 -G appuser appuser) && \
-    (getent group appuser >/dev/null 2>&1 || addgroup appuser) && \
-    (getent passwd appuser >/dev/null 2>&1 || adduser -D -u 1000 -G appuser appuser)
+# Create non-root user with UID 1001 (UID 1000 is already used by 'node' user in base image)
+RUN addgroup -g 1001 appuser && \
+    adduser -D -u 1001 -G appuser appuser
 
 # Set ownership
 RUN chown -R appuser:appuser /app /inject-env.sh

@@ -72,7 +72,7 @@ podSecurityContext:
 securityContext:
   app:
     runAsNonRoot: true
-    runAsUser: 1000
+    runAsUser: 1001
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: false  # App needs write access for logs
     capabilities:
