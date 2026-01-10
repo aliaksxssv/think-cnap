@@ -33,7 +33,7 @@ RUN npm install -g serve
 COPY --from=builder /app .
 
 # Copy environment injection script
-COPY docker/inject-env.sh /inject-env.sh
+COPY scripts/inject-env.sh /inject-env.sh
 RUN chmod +x /inject-env.sh
 
 # Create non-root user with UID 1001 (UID 1000 is already used by 'node' user in base image)
