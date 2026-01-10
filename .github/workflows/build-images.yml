@@ -5,12 +5,10 @@ on:
     branches:
       - main
     paths:
-      - 'docker/Dockerfile'
-      - 'docker/Dockerfile.db'
-      - 'package.json'
-      - '**/*.js'
-      - '**/*.html'
-      - '**/*.css'
+      - 'docker/**'
+      - 'sql/**'
+      - 'scripts/**'
+      - '.github/workflows/build-images.yml'
   workflow_dispatch:
 
 env:
