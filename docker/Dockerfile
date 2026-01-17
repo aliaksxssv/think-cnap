@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files from app source
 COPY app/package*.json ./
 
-# Install dependencies (if any)
-RUN npm ci --only=production || true
+# Install dependencies for API server
+RUN if [ -f package.json ]; then npm install --omit=dev; fi
 
 # Copy application files from app source
 COPY app/ .
@@ -25,9 +25,6 @@ RUN if [ -n "$GOOGLE_CLIENT_ID" ]; then \
 FROM node:20-alpine
 
 WORKDIR /app
-
-# Install serve for static file serving
-RUN npm install -g serve
 
 # Copy application files from builder
 COPY --from=builder /app .

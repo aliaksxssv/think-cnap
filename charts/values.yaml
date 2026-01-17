@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/aliaksxssv/think-cnap
+  repository: ghcr.io/aliaksxssv/think-cnap/think-cnap
   pullPolicy: IfNotPresent
   tag: "latest"
 
@@ -17,7 +17,7 @@ service:
 
 database:
   image:
-    repository: ghcr.io/aliaksxssv/think-cnap-db
+    repository: ghcr.io/aliaksxssv/think-cnap/think-cnap-db
     pullPolicy: IfNotPresent
     tag: "latest"
   name: "thinkcnap"
@@ -109,5 +109,4 @@ secrets:
   
   # OR use existing Kubernetes secret (recommended for production)
   # existingSecret: "think-cnap-secrets"  # Secret must have 'resendApiKey' and 'googleClientId' keys
-  
   

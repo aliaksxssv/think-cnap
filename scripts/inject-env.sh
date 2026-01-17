@@ -10,5 +10,5 @@ find /app -name "*.html" -type f | while read file; do
   sed "s|{{GOOGLE_CLIENT_ID}}|${GOOGLE_CLIENT_ID}|g" "$file" > "$file.tmp" && mv "$file.tmp" "$file"
 done
 
-# Start the server
-exec serve -s /app -l 8080
+# Start the server (API + static files)
+exec node /app/server.js
