@@ -101,6 +101,18 @@ function getJwtSecret() {
   return process.env.JWT_SECRET || 'default-secret';
 }
 
+function generateSlug(tactic, technique) {
+  const tacticSlug = String(tactic || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  const techniqueSlug = String(technique || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${tacticSlug}/${techniqueSlug}`;
+}
+
 async function fetchUserByEmail(email) {
   try {
     const { rows } = await pool.query(
@@ -442,6 +454,38 @@ app.post('/api/auth/signout', (req, res) => {
   res.json({ success: true, message: 'Signed out successfully' });
 });
 
+app.post('/api/auth/change-password', async (req, res) => {
+  try {
+    const payload = await getAuthPayload(req, res);
+    if (!payload) return;
+
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required' });
+    }
+
+    const user = await fetchUserById(payload.id);
+    if (!user || !user.password_hash) {
+      return res.status(400).json({ error: 'Password change is not available for this account' });
+    }
+
+    const currentHash = await hashPassword(currentPassword);
+    if (currentHash !== user.password_hash) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await pool.query(
+      'UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2',
+      [newHash, user.id]
+    );
+
+    return res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to change password', message: error.message });
+  }
+});
+
 app.get('/api/admin/check', async (req, res) => {
   const admin = await requireAdmin(req, res);
   if (!admin) return;
@@ -547,6 +591,527 @@ app.get('/api/admin/mitre', async (req, res) => {
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Failed to load mitre', message: error.message });
+  }
+});
+
+app.post('/api/admin/users', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { email, name, is_admin = false, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+    const hashedPassword = await hashPassword(password);
+    const result = await pool.query(
+      `
+      INSERT INTO users (email, name, password_hash, is_admin, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, now(), now())
+      RETURNING id
+      `,
+      [email, name || null, hashedPassword, Boolean(is_admin)]
+    );
+    res.json({ success: true, id: result.rows[0].id, message: 'User created successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user', message: error.message });
+  }
+});
+
+app.put('/api/admin/users/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { email, name, is_admin } = req.body || {};
+    const result = await pool.query(
+      `
+      UPDATE users
+      SET email = $1, name = $2, is_admin = $3, updated_at = now()
+      WHERE id = $4
+      `,
+      [email, name || null, Boolean(is_admin), req.params.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, message: 'User updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update user', message: error.message });
+  }
+});
+
+app.delete('/api/admin/users/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    await pool.query('DELETE FROM scoring WHERE user_id = $1', [req.params.id.toString()]);
+    const result = await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete user', message: error.message });
+  }
+});
+
+app.post('/api/admin/domains', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { name } = req.body || {};
+    if (!name) {
+      return res.status(400).json({ error: 'Domain name is required' });
+    }
+    const result = await pool.query(
+      'INSERT INTO security_domains (name) VALUES ($1) RETURNING id',
+      [name]
+    );
+    res.json({ success: true, id: result.rows[0].id, message: 'Domain created successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create domain', message: error.message });
+  }
+});
+
+app.put('/api/admin/domains/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { name } = req.body || {};
+    const result = await pool.query(
+      'UPDATE security_domains SET name = $1 WHERE id = $2',
+      [name, req.params.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+    res.json({ success: true, message: 'Domain updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update domain', message: error.message });
+  }
+});
+
+app.delete('/api/admin/domains/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const countResult = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM security_controls WHERE domain_id = $1',
+      [req.params.id]
+    );
+    if (countResult.rows[0].count > 0) {
+      return res.status(400).json({ error: 'Cannot delete domain with existing controls. Delete controls first.' });
+    }
+    const result = await pool.query('DELETE FROM security_domains WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+    res.json({ success: true, message: 'Domain deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete domain', message: error.message });
+  }
+});
+
+app.post('/api/admin/controls', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { code, text, domain_id } = req.body || {};
+    if (!code || !text || !domain_id) {
+      return res.status(400).json({ error: 'code, text, and domain_id are required' });
+    }
+    const result = await pool.query(
+      `
+      INSERT INTO security_controls (code, text, domain_id)
+      VALUES ($1, $2, $3)
+      RETURNING id
+      `,
+      [code, text, domain_id]
+    );
+    res.json({ success: true, id: result.rows[0].id, message: 'Control created successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create control', message: error.message });
+  }
+});
+
+app.put('/api/admin/controls/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { code, text, domain_id } = req.body || {};
+    const result = await pool.query(
+      `
+      UPDATE security_controls
+      SET code = $1, text = $2, domain_id = $3
+      WHERE id = $4
+      `,
+      [code, text, domain_id, req.params.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Control not found' });
+    }
+    res.json({ success: true, message: 'Control updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update control', message: error.message });
+  }
+});
+
+app.delete('/api/admin/controls/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const countResult = await pool.query(
+      'SELECT COUNT(*)::int AS count FROM action_items WHERE control_id = $1',
+      [req.params.id]
+    );
+    if (countResult.rows[0].count > 0) {
+      return res.status(400).json({ error: 'Cannot delete control with existing measures. Delete measures first.' });
+    }
+    const result = await pool.query('DELETE FROM security_controls WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Control not found' });
+    }
+    res.json({ success: true, message: 'Control deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete control', message: error.message });
+  }
+});
+
+app.get('/api/admin/measures/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const result = await pool.query(
+      `
+      SELECT a.id, a.measure_id, a.measure, a.comment, a.tags, a.control_id,
+             s.impact, s.effort, s.before_score, s.maturity_score, s.goal_score
+      FROM action_items a
+      LEFT JOIN scoring s ON a.measure_id = s.measure_id AND s.is_default = 1
+      WHERE a.id = $1
+      `,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Measure not found' });
+    }
+    const measure = result.rows[0];
+    const ttpRows = await pool.query(
+      'SELECT ttp_id FROM measure_ttp_relationships WHERE measure_id = $1',
+      [measure.measure_id]
+    );
+    res.json({
+      ...measure,
+      initial_maturity: measure.before_score ?? -1,
+      present_maturity: measure.maturity_score ?? -1,
+      desired_maturity: measure.goal_score ?? -1,
+      ttp_ids: ttpRows.rows.map(row => row.ttp_id)
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get measure', message: error.message });
+  }
+});
+
+app.post('/api/admin/measures', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { measure_id, measure, comment, tags, control_id, ttp_ids, impact, effort, initial_maturity, present_maturity, desired_maturity } = req.body || {};
+    if (!measure_id || !measure || !tags || !control_id) {
+      return res.status(400).json({ error: 'measure_id, measure, tags, and control_id are required' });
+    }
+    const insertResult = await pool.query(
+      `
+      INSERT INTO action_items (measure_id, measure, comment, tags, control_id)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
+      `,
+      [measure_id, measure, comment || '', tags, control_id]
+    );
+    await pool.query(
+      `
+      INSERT INTO scoring
+      (measure_id, user_id, impact, effort, before_score, maturity_score, goal_score, is_default)
+      VALUES ($1, NULL, $2, $3, $4, $5, $6, 1)
+      `,
+      [
+        measure_id,
+        impact || 'medium',
+        effort || 'medium',
+        initial_maturity ?? -1,
+        present_maturity ?? -1,
+        desired_maturity ?? -1
+      ]
+    );
+    if (Array.isArray(ttp_ids) && ttp_ids.length > 0) {
+      for (const ttpId of ttp_ids) {
+        await pool.query(
+          'INSERT INTO measure_ttp_relationships (measure_id, ttp_id) VALUES ($1, $2)',
+          [measure_id, ttpId]
+        );
+      }
+    }
+    res.json({ success: true, id: insertResult.rows[0].id, message: 'Measure created successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create measure', message: error.message });
+  }
+});
+
+app.put('/api/admin/measures/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { measure_id, measure, comment, tags, control_id, ttp_ids, impact, effort, initial_maturity, present_maturity, desired_maturity } = req.body || {};
+    const result = await pool.query(
+      `
+      UPDATE action_items
+      SET measure_id = $1, measure = $2, comment = $3, tags = $4, control_id = $5
+      WHERE id = $6
+      `,
+      [measure_id, measure, comment || '', tags, control_id, req.params.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Measure not found' });
+    }
+    const updateScore = await pool.query(
+      `
+      UPDATE scoring
+      SET impact = $1, effort = $2, before_score = $3, maturity_score = $4, goal_score = $5
+      WHERE measure_id = $6 AND is_default = 1
+      `,
+      [
+        impact || 'medium',
+        effort || 'medium',
+        initial_maturity ?? -1,
+        present_maturity ?? -1,
+        desired_maturity ?? -1,
+        measure_id
+      ]
+    );
+    if (updateScore.rowCount === 0) {
+      await pool.query(
+        `
+        INSERT INTO scoring
+        (measure_id, user_id, impact, effort, before_score, maturity_score, goal_score, is_default)
+        VALUES ($1, NULL, $2, $3, $4, $5, $6, 1)
+        `,
+        [
+          measure_id,
+          impact || 'medium',
+          effort || 'medium',
+          initial_maturity ?? -1,
+          present_maturity ?? -1,
+          desired_maturity ?? -1
+        ]
+      );
+    }
+    if (ttp_ids !== undefined) {
+      await pool.query('DELETE FROM measure_ttp_relationships WHERE measure_id = $1', [measure_id]);
+      if (Array.isArray(ttp_ids) && ttp_ids.length > 0) {
+        for (const ttpId of ttp_ids) {
+          await pool.query(
+            'INSERT INTO measure_ttp_relationships (measure_id, ttp_id) VALUES ($1, $2)',
+            [measure_id, ttpId]
+          );
+        }
+      }
+    }
+    res.json({ success: true, message: 'Measure updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update measure', message: error.message });
+  }
+});
+
+app.delete('/api/admin/measures/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const measureRes = await pool.query(
+      'SELECT measure_id FROM action_items WHERE id = $1',
+      [req.params.id]
+    );
+    if (measureRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Measure not found' });
+    }
+    const measureId = measureRes.rows[0].measure_id;
+    await pool.query('DELETE FROM scoring WHERE measure_id = $1', [measureId]);
+    await pool.query('DELETE FROM measure_ttp_relationships WHERE measure_id = $1', [measureId]);
+    await pool.query('DELETE FROM action_items WHERE id = $1', [req.params.id]);
+    res.json({ success: true, message: 'Measure deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete measure', message: error.message });
+  }
+});
+
+app.get('/api/admin/mitre/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const result = await pool.query('SELECT * FROM mitre_ttps WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'MITRE TTP not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get MITRE TTP', message: error.message });
+  }
+});
+
+app.post('/api/admin/mitre', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { tactic, technique } = req.body || {};
+    if (!tactic || !technique) {
+      return res.status(400).json({ error: 'Tactic and technique are required' });
+    }
+    const slug = generateSlug(tactic, technique);
+    const result = await pool.query(
+      'INSERT INTO mitre_ttps (tactic, technique, slug) VALUES ($1, $2, $3) RETURNING id',
+      [tactic, technique, slug]
+    );
+    res.json({ success: true, id: result.rows[0].id, message: 'MITRE TTP created successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create MITRE TTP', message: error.message });
+  }
+});
+
+app.put('/api/admin/mitre/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { tactic, technique } = req.body || {};
+    const slug = generateSlug(tactic, technique);
+    const result = await pool.query(
+      `
+      UPDATE mitre_ttps
+      SET tactic = $1, technique = $2, slug = $3, updated_at = now()
+      WHERE id = $4
+      `,
+      [tactic, technique, slug, req.params.id]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'MITRE TTP not found' });
+    }
+    res.json({ success: true, message: 'MITRE TTP updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update MITRE TTP', message: error.message });
+  }
+});
+
+app.delete('/api/admin/mitre/:id', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    await pool.query('DELETE FROM mitre_exploitation_examples WHERE ttp_id = $1', [req.params.id]);
+    const result = await pool.query('DELETE FROM mitre_ttps WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'MITRE TTP not found' });
+    }
+    res.json({ success: true, message: 'MITRE TTP deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete MITRE TTP', message: error.message });
+  }
+});
+
+app.get('/api/admin/mitre/:id/examples', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const result = await pool.query(
+      `
+      SELECT * FROM mitre_exploitation_examples
+      WHERE ttp_id = $1
+      ORDER BY order_index, id
+      `,
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load examples', message: error.message });
+  }
+});
+
+app.get('/api/admin/mitre/:id/examples/:exampleId', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const result = await pool.query(
+      `
+      SELECT * FROM mitre_exploitation_examples
+      WHERE ttp_id = $1 AND id = $2
+      `,
+      [req.params.id, req.params.exampleId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Example not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load example', message: error.message });
+  }
+});
+
+app.post('/api/admin/mitre/:id/examples', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { title, description, code_block, order_index } = req.body || {};
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    const result = await pool.query(
+      `
+      INSERT INTO mitre_exploitation_examples (ttp_id, title, description, code_block, order_index, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, now(), now())
+      RETURNING id
+      `,
+      [req.params.id, title, description || null, code_block || null, order_index ?? 0]
+    );
+    res.json({ success: true, id: result.rows[0].id, message: 'Example created successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create example', message: error.message });
+  }
+});
+
+app.put('/api/admin/mitre/:id/examples/:exampleId', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { title, description, code_block, order_index } = req.body || {};
+    const result = await pool.query(
+      `
+      UPDATE mitre_exploitation_examples
+      SET title = $1, description = $2, code_block = $3, order_index = $4, updated_at = now()
+      WHERE ttp_id = $5 AND id = $6
+      `,
+      [title, description || null, code_block || null, order_index ?? 0, req.params.id, req.params.exampleId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Example not found' });
+    }
+    res.json({ success: true, message: 'Example updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update example', message: error.message });
+  }
+});
+
+app.delete('/api/admin/mitre/:id/examples/:exampleId', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const result = await pool.query(
+      'DELETE FROM mitre_exploitation_examples WHERE ttp_id = $1 AND id = $2',
+      [req.params.id, req.params.exampleId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Example not found' });
+    }
+    res.json({ success: true, message: 'Example deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete example', message: error.message });
   }
 });
 
