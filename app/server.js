@@ -19,6 +19,11 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.path === '/' || req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
@@ -94,6 +99,74 @@ async function verifyJWT(token, secret) {
 
 function getJwtSecret() {
   return process.env.JWT_SECRET || 'default-secret';
+}
+
+async function fetchUserByEmail(email) {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, email, name, password_hash, google_id, is_admin FROM users WHERE email = $1',
+      [email]
+    );
+    return rows[0] || null;
+  } catch (error) {
+    if (String(error.message || '').includes('is_admin')) {
+      const { rows } = await pool.query(
+        'SELECT id, email, name, password_hash, google_id FROM users WHERE email = $1',
+        [email]
+      );
+      return rows[0] ? { ...rows[0], is_admin: false } : null;
+    }
+    throw error;
+  }
+}
+
+async function fetchUserById(id) {
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, email, name, password_hash, google_id, is_admin FROM users WHERE id = $1',
+      [id]
+    );
+    return rows[0] || null;
+  } catch (error) {
+    if (String(error.message || '').includes('is_admin')) {
+      const { rows } = await pool.query(
+        'SELECT id, email, name, password_hash, google_id FROM users WHERE id = $1',
+        [id]
+      );
+      return rows[0] ? { ...rows[0], is_admin: false } : null;
+    }
+    throw error;
+  }
+}
+
+async function getAuthPayload(req, res) {
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Missing or invalid authorization header' });
+    return null;
+  }
+  const token = authHeader.substring(7);
+  const payload = await verifyJWT(token, getJwtSecret());
+  if (!payload) {
+    res.status(401).json({ error: 'Invalid token' });
+    return null;
+  }
+  return payload;
+}
+
+async function requireAdmin(req, res) {
+  const payload = await getAuthPayload(req, res);
+  if (!payload) return null;
+  const user = await fetchUserById(payload.id);
+  if (!user) {
+    res.status(401).json({ error: 'User not found' });
+    return null;
+  }
+  if (!user.is_admin) {
+    res.status(403).json({ error: 'Admin access required' });
+    return null;
+  }
+  return user;
 }
 
 async function requireAuth(req, res, userId) {
@@ -239,12 +312,7 @@ app.post('/api/auth/google', async (req, res) => {
     const payload = decodeGoogleCredential(credential);
     const { email, name, sub: googleId } = payload;
 
-    const { rows } = await pool.query(
-      'SELECT id, email, name, google_id, is_admin FROM users WHERE email = $1',
-      [email]
-    );
-
-    let user = rows[0];
+    let user = await fetchUserByEmail(email);
     if (!user) {
       const insert = await pool.query(
         `
@@ -265,7 +333,7 @@ app.post('/api/auth/google', async (req, res) => {
         `,
         [googleId, user.id]
       );
-      user = update.rows[0];
+      user = { ...update.rows[0], is_admin: Boolean(user.is_admin) };
     }
 
     const userObj = {
@@ -328,12 +396,7 @@ app.post('/api/auth/signin', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const result = await pool.query(
-      'SELECT id, email, name, password_hash, is_admin FROM users WHERE email = $1',
-      [email]
-    );
-
-    const user = result.rows[0];
+    const user = await fetchUserByEmail(email);
     if (!user || !user.password_hash) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -377,6 +440,114 @@ app.post('/api/auth/verify', async (req, res) => {
 
 app.post('/api/auth/signout', (req, res) => {
   res.json({ success: true, message: 'Signed out successfully' });
+});
+
+app.get('/api/admin/check', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  res.json({ success: true, message: 'Admin access verified' });
+});
+
+app.get('/api/admin/users', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, email, name, is_admin, created_at, updated_at FROM users ORDER BY created_at DESC'
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load users', message: error.message });
+  }
+});
+
+app.get('/api/admin/domains', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { rows } = await pool.query(
+      'SELECT id, name FROM security_domains ORDER BY id'
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load domains', message: error.message });
+  }
+});
+
+app.get('/api/admin/controls', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { rows } = await pool.query(
+      `
+      SELECT c.id, c.code, c.text, c.domain_id, d.name AS domain_name
+      FROM security_controls c
+      LEFT JOIN security_domains d ON c.domain_id = d.id
+      ORDER BY c.id
+      `
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load controls', message: error.message });
+  }
+});
+
+app.get('/api/admin/measures', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { rows } = await pool.query(
+      `
+      SELECT id, control_id, measure_id, measure, comment, mitre, tags
+      FROM action_items
+      ORDER BY id
+      `
+    );
+    const ttpRows = await pool.query(
+      `
+      SELECT mtr.measure_id, mt.id, mt.tactic, mt.technique, mt.slug
+      FROM measure_ttp_relationships mtr
+      JOIN mitre_ttps mt ON mtr.ttp_id = mt.id
+      ORDER BY mt.tactic, mt.technique
+      `
+    );
+    const ttpMap = new Map();
+    for (const row of ttpRows.rows) {
+      if (!ttpMap.has(row.measure_id)) {
+        ttpMap.set(row.measure_id, []);
+      }
+      ttpMap.get(row.measure_id).push({
+        id: row.id,
+        tactic: row.tactic,
+        technique: row.technique,
+        slug: row.slug
+      });
+    }
+    const measures = rows.map(measure => ({
+      ...measure,
+      linked_ttps: ttpMap.get(measure.measure_id) || []
+    }));
+    res.json(measures);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load measures', message: error.message });
+  }
+});
+
+app.get('/api/admin/mitre', async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+  try {
+    const { rows } = await pool.query(
+      `
+      SELECT id, tactic, technique, slug, created_at, updated_at
+      FROM mitre_ttps
+      ORDER BY tactic, technique
+      `
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load mitre', message: error.message });
+  }
 });
 
 app.get('/api/user/:userId/scoring', async (req, res) => {

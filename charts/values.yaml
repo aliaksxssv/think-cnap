@@ -35,6 +35,8 @@ persistence:
   accessMode: ReadWriteOnce
   size: 500Mi
   mountPath: "/var/lib/postgresql/data"
+  # Delete the PVC on helm uninstall (dangerous; data loss)
+  deleteOnUninstall: false
 
 resources:
   app:
