@@ -768,6 +768,7 @@
                 const formData = new FormData(form);
                 const data = { name: formData.get('name') };
                 await apiCall('/domains', 'POST', data);
+                await window.adminPanel.loadTabContent('domains');
             });
         }
 
@@ -788,6 +789,7 @@
                 const formData = new FormData(form);
                 const data = { name: formData.get('name') };
                 await apiCall(`/domains/${id}`, 'PUT', data);
+                await window.adminPanel.loadTabContent('domains');
             });
         }
 
@@ -830,6 +832,7 @@
                     domain_id: parseInt(formData.get('domain_id'))
                 };
                 await apiCall('/controls', 'POST', data);
+                await window.adminPanel.loadTabContent('controls');
             });
         }
 
@@ -868,6 +871,7 @@
                     domain_id: parseInt(formData.get('domain_id'))
                 };
                 await apiCall(`/controls/${id}`, 'PUT', data);
+                await window.adminPanel.loadTabContent('controls');
             });
         }
 
