@@ -356,7 +356,6 @@
                                 <th class="px-4 py-2 text-left">Email</th>
                                 <th class="px-4 py-2 text-left">Name</th>
                                 <th class="px-4 py-2 text-left">Admin</th>
-                                <th class="px-4 py-2 text-left">Verified</th>
                                 <th class="px-4 py-2 text-left">Created</th>
                                 <th class="px-4 py-2 text-left">Actions</th>
                             </tr>
@@ -370,11 +369,6 @@
                                     <td class="px-4 py-2">
                                         <span class="px-2 py-1 rounded text-xs ${user.is_admin ? 'bg-red-600' : 'bg-gray-600'}">
                                             ${user.is_admin ? 'Yes' : 'No'}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-2">
-                                        <span class="px-2 py-1 rounded text-xs ${user.email_verified ? 'bg-green-600' : 'bg-yellow-600'}">
-                                            ${user.email_verified ? 'Yes' : 'No'}
                                         </span>
                                     </td>
                                     <td class="px-4 py-2">${new Date(user.created_at).toLocaleDateString()}</td>

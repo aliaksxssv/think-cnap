@@ -323,12 +323,12 @@ class ThinkCNAPAuth {
             const data = await response.json();
             
             if (response.ok) {
-                await this.setUserSession(data.user, data.token);
-                this.onAuthStateChange('signed-in');
-                return { success: true };
+                    await this.setUserSession(data.user, data.token);
+                    this.onAuthStateChange('signed-in');
+                    return { success: true };
             } else {
                 return { success: false, error: data.error };
-            }
+                }
             if (response.ok) {
                 await this.setUserSession(data.user, data.token);
                 this.onAuthStateChange('signed-in');

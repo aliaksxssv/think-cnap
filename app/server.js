@@ -237,13 +237,10 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const payload = decodeGoogleCredential(credential);
-    const { email, name, sub: googleId, email_verified } = payload;
-    if (!email_verified) {
-      return res.status(400).json({ error: 'Google email not verified' });
-    }
+    const { email, name, sub: googleId } = payload;
 
     const { rows } = await pool.query(
-      'SELECT id, email, name, google_id, email_verified, is_admin FROM users WHERE email = $1',
+      'SELECT id, email, name, google_id, is_admin FROM users WHERE email = $1',
       [email]
     );
 
@@ -251,9 +248,9 @@ app.post('/api/auth/google', async (req, res) => {
     if (!user) {
       const insert = await pool.query(
         `
-        INSERT INTO users (email, name, google_id, email_verified, email_verified_at, created_at, updated_at)
-        VALUES ($1, $2, $3, 1, now(), now(), now())
-        RETURNING id, email, name, google_id, email_verified, is_admin
+        INSERT INTO users (email, name, google_id, created_at, updated_at)
+        VALUES ($1, $2, $3, now(), now())
+        RETURNING id, email, name, google_id, is_admin
         `,
         [email, name || email.split('@')[0], googleId]
       );
@@ -262,9 +259,9 @@ app.post('/api/auth/google', async (req, res) => {
       const update = await pool.query(
         `
         UPDATE users
-        SET google_id = $1, email_verified = 1, email_verified_at = now(), updated_at = now()
+        SET google_id = $1, updated_at = now()
         WHERE id = $2
-        RETURNING id, email, name, google_id, email_verified, is_admin
+        RETURNING id, email, name, google_id, is_admin
         `,
         [googleId, user.id]
       );
@@ -277,7 +274,6 @@ app.post('/api/auth/google', async (req, res) => {
       name: user.name,
       googleId: user.google_id,
       isAnonymous: false,
-      email_verified: true,
       is_admin: Boolean(user.is_admin)
     };
 
@@ -303,8 +299,8 @@ app.post('/api/auth/signup', async (req, res) => {
     const passwordHash = await hashPassword(password);
     const insert = await pool.query(
       `
-      INSERT INTO users (email, password_hash, name, email_verified, created_at, updated_at)
-      VALUES ($1, $2, $3, 1, now(), now())
+      INSERT INTO users (email, password_hash, name, created_at, updated_at)
+      VALUES ($1, $2, $3, now(), now())
       RETURNING id, email, name, is_admin
       `,
       [email, passwordHash, email.split('@')[0]]
@@ -315,7 +311,6 @@ app.post('/api/auth/signup', async (req, res) => {
       email: insert.rows[0].email,
       name: insert.rows[0].name,
       isAnonymous: false,
-      email_verified: true,
       is_admin: Boolean(insert.rows[0].is_admin)
     };
 
@@ -334,7 +329,7 @@ app.post('/api/auth/signin', async (req, res) => {
     }
 
     const result = await pool.query(
-      'SELECT id, email, name, password_hash, email_verified, is_admin FROM users WHERE email = $1',
+      'SELECT id, email, name, password_hash, is_admin FROM users WHERE email = $1',
       [email]
     );
 
@@ -353,7 +348,6 @@ app.post('/api/auth/signin', async (req, res) => {
       email: user.email,
       name: user.name,
       isAnonymous: false,
-      email_verified: Boolean(user.email_verified),
       is_admin: Boolean(user.is_admin)
     };
 

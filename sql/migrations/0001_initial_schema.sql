@@ -51,8 +51,6 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT,
     google_id TEXT,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-    email_verified INTEGER DEFAULT 0,
-    email_verified_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

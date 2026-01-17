@@ -1869,8 +1869,8 @@ class MobileApp {
         await this.setUserSession(data.user, data.token);
         console.log('✅ Email authentication successful');
         await this.loadApp();
-      } else {
-        this.showAuthError(data.error || 'Sign in failed');
+        } else {
+          this.showAuthError(data.error || 'Sign in failed');
       }
     } catch (error) {
       console.error('❌ Email signin failed:', error);
@@ -1909,10 +1909,10 @@ class MobileApp {
       console.log('📧 Email signup response:', data);
       
       if (response.ok) {
-        await this.setUserSession(data.user, data.token);
-        console.log('✅ Email signup successful');
-        this.showAuthSuccess('Registration successful! Welcome to ThinkCNAP!');
-        await this.loadApp();
+          await this.setUserSession(data.user, data.token);
+          console.log('✅ Email signup successful');
+          this.showAuthSuccess('Registration successful! Welcome to ThinkCNAP!');
+          await this.loadApp();
       } else {
         this.showAuthError(data.error || 'Sign up failed');
       }

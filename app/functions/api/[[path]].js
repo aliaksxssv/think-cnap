@@ -276,33 +276,10 @@ async function createUsersTable(db) {
       password_hash TEXT,
       name TEXT,
       google_id TEXT,
-      email_verified INTEGER DEFAULT 0,
-      email_verified_at TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `).run();
-  
-  // Add email verification columns if they don't exist (migration)
-  try {
-    await db.prepare(`ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`).run();
-    console.log('Added email_verified column');
-  } catch (error) {
-    // Column already exists, ignore error
-    if (!error.message.includes('duplicate column name')) {
-      console.error('Error adding email_verified column:', error);
-    }
-  }
-  
-  try {
-    await db.prepare(`ALTER TABLE users ADD COLUMN email_verified_at TEXT`).run();
-    console.log('Added email_verified_at column');
-  } catch (error) {
-    // Column already exists, ignore error
-    if (!error.message.includes('duplicate column name')) {
-      console.error('Error adding email_verified_at column:', error);
-    }
-  }
   
 }
 
@@ -338,10 +315,10 @@ async function handleSignUp(env, request, corsHeaders) {
     // Hash password
     const passwordHash = await hashPassword(password);
     
-    // Create user (email is marked verified; no email is sent)
+    // Create user
     const result = await env.DB.prepare(`
-      INSERT INTO users (email, password_hash, name, email_verified, created_at, updated_at)
-      VALUES (?, ?, ?, 1, datetime('now'), datetime('now'))
+      INSERT INTO users (email, password_hash, name, created_at, updated_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
     `).bind(email, passwordHash, email.split('@')[0]).run();
     
     return new Response(JSON.stringify({
@@ -400,24 +377,11 @@ async function handleSignIn(env, request, corsHeaders) {
       });
     }
     
-    // Check if email is verified
-    if (!user.email_verified) {
-      return new Response(JSON.stringify({ 
-        error: 'Email verification required. Please check your email and click the verification link.',
-        verification_required: true,
-        email: user.email
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
     const userObj = {
       id: user.id,
       email: user.email,
       name: user.name,
       isAnonymous: false,
-      email_verified: true,
       is_admin: Boolean(user.is_admin)
     };
     
@@ -514,14 +478,7 @@ async function handleGoogleAuth(env, request, corsHeaders) {
     // In production, you should verify the token with Google
     const payload = JSON.parse(atob(credential.split('.')[1]));
     
-    const { email, name, sub: googleId, email_verified } = payload;
-    
-    if (!email_verified) {
-      return new Response(JSON.stringify({ error: 'Google email not verified' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    const { email, name, sub: googleId } = payload;
     
     // Check if user exists
     let user = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
@@ -530,26 +487,24 @@ async function handleGoogleAuth(env, request, corsHeaders) {
     if (!user) {
       // Create new user
       const result = await env.DB.prepare(`
-        INSERT INTO users (email, name, google_id, email_verified, email_verified_at, created_at, updated_at)
-        VALUES (?, ?, ?, 1, datetime('now'), datetime('now'), datetime('now'))
+        INSERT INTO users (email, name, google_id, created_at, updated_at)
+        VALUES (?, ?, ?, datetime('now'), datetime('now'))
       `).bind(email, name, googleId).run();
       
       user = {
         id: result.meta.last_row_id,
         email,
         name,
-        google_id: googleId,
-        email_verified: 1
+        google_id: googleId
       };
     } else {
       // Update existing user with Google ID if not set
       if (!user.google_id) {
         await env.DB.prepare(`
-          UPDATE users SET google_id = ?, email_verified = 1, email_verified_at = datetime('now'), updated_at = datetime('now')
+          UPDATE users SET google_id = ?, updated_at = datetime('now')
           WHERE id = ?
         `).bind(googleId, user.id).run();
         user.google_id = googleId;
-        user.email_verified = 1;
       }
     }
     
@@ -559,7 +514,6 @@ async function handleGoogleAuth(env, request, corsHeaders) {
       name: user.name,
       googleId: user.google_id,
       isAnonymous: false,
-      email_verified: true,
       is_admin: Boolean(user.is_admin)
     };
     

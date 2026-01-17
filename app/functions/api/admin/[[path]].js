@@ -268,7 +268,7 @@ async function handleAdminDelete(path, request, env, corsHeaders) {
 // User management functions
 async function getUsers(env, corsHeaders) {
   const users = await env.DB.prepare(`
-    SELECT id, email, name, is_admin, email_verified, created_at, updated_at
+    SELECT id, email, name, is_admin, created_at, updated_at
     FROM users
     ORDER BY created_at DESC
   `).all();
@@ -304,8 +304,8 @@ async function createUser(body, env, corsHeaders) {
   
   // Create user
   const result = await env.DB.prepare(`
-    INSERT INTO users (email, name, password_hash, is_admin, email_verified, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 1, datetime('now'), datetime('now'))
+    INSERT INTO users (email, name, password_hash, is_admin, created_at, updated_at)
+    VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
   `).bind(email, name, hashedPassword, is_admin ? 1 : 0).run();
   
   return new Response(JSON.stringify({ 
@@ -345,9 +345,6 @@ async function deleteUser(id, env, corsHeaders) {
   try {
     // Delete related records first to avoid foreign key constraints
     await env.DB.prepare('DELETE FROM scoring WHERE user_id = ?').bind(id).run();
-    await env.DB.prepare('DELETE FROM email_verification_tokens WHERE user_id = ?').bind(id).run();
-    await env.DB.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(id).run();
-    
     // Now delete the user
     const result = await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
     
