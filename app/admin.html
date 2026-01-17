@@ -624,11 +624,17 @@
             }
 
             showLoading() {
-                document.getElementById('loading').classList.remove('hidden');
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.classList.remove('hidden');
+                }
             }
 
             hideLoading() {
-                document.getElementById('loading').classList.add('hidden');
+                const loading = document.getElementById('loading');
+                if (loading) {
+                    loading.classList.add('hidden');
+                }
             }
 
             showError(message) {
@@ -662,6 +668,7 @@
             const token = localStorage.getItem('think_cnap_token');
             const options = {
                 method,
+                cache: 'no-store',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -826,10 +833,14 @@
             `, async () => {
                 const form = document.getElementById('control-form');
                 const formData = new FormData(form);
+                const domainId = parseInt(formData.get('domain_id'), 10);
+                if (!Number.isFinite(domainId)) {
+                    throw new Error('Please select a domain');
+                }
                 const data = {
                     code: formData.get('code'),
                     text: formData.get('text'),
-                    domain_id: parseInt(formData.get('domain_id'))
+                    domain_id: domainId
                 };
                 await apiCall('/controls', 'POST', data);
                 await window.adminPanel.loadTabContent('controls');
@@ -865,10 +876,14 @@
             `, async () => {
                 const form = document.getElementById('control-form');
                 const formData = new FormData(form);
+                const domainId = parseInt(formData.get('domain_id'), 10);
+                if (!Number.isFinite(domainId)) {
+                    throw new Error('Please select a domain');
+                }
                 const data = {
                     code: formData.get('code'),
                     text: formData.get('text'),
-                    domain_id: parseInt(formData.get('domain_id'))
+                    domain_id: domainId
                 };
                 await apiCall(`/controls/${id}`, 'PUT', data);
                 await window.adminPanel.loadTabContent('controls');
@@ -954,9 +969,13 @@
         }
 
         async function manageExamples(ttpId) {
-            // Close any existing modals first
+            // Close any existing modals first (keep loading overlay)
             const existingModals = document.querySelectorAll('.fixed.inset-0');
-            existingModals.forEach(modal => modal.remove());
+            existingModals.forEach(modal => {
+                if (modal.id !== 'loading') {
+                    modal.remove();
+                }
+            });
             
             const mitre = await apiCall(`/mitre/${ttpId}`);
             const examples = await apiCall(`/mitre/${ttpId}/examples`);
@@ -1149,6 +1168,10 @@
             `, async () => {
                 const form = document.getElementById('measure-form');
                 const formData = new FormData(form);
+                const controlId = parseInt(formData.get('control_id'), 10);
+                if (!Number.isFinite(controlId)) {
+                    throw new Error('Please select a control');
+                }
                 const selectedTtps = Array.from(form.querySelectorAll('input[name="ttp_ids"]:checked')).map(cb => parseInt(cb.value));
                 
                 const data = {
@@ -1158,7 +1181,7 @@
                     tags: formData.get('tags'),
                     impact: formData.get('impact'),
                     effort: formData.get('effort'),
-                    control_id: parseInt(formData.get('control_id')),
+                    control_id: controlId,
                     ttp_ids: selectedTtps
                 };
                 await apiCall('/measures', 'POST', data);
@@ -1246,6 +1269,10 @@
             `, async () => {
                 const form = document.getElementById('measure-form');
                 const formData = new FormData(form);
+                const controlId = parseInt(formData.get('control_id'), 10);
+                if (!Number.isFinite(controlId)) {
+                    throw new Error('Please select a control');
+                }
                 const selectedTtps = Array.from(form.querySelectorAll('input[name="ttp_ids"]:checked')).map(cb => parseInt(cb.value));
                 
                 const data = {
@@ -1255,7 +1282,7 @@
                     tags: formData.get('tags'),
                     impact: formData.get('impact'),
                     effort: formData.get('effort'),
-                    control_id: parseInt(formData.get('control_id')),
+                    control_id: controlId,
                     ttp_ids: selectedTtps
                 };
                 await apiCall(`/measures/${id}`, 'PUT', data);
@@ -1385,7 +1412,11 @@
         function showModal(title, content, onSave) {
             // Close any existing modals first
             const existingModals = document.querySelectorAll('.fixed.inset-0');
-            existingModals.forEach(modal => modal.remove());
+            existingModals.forEach(modal => {
+                if (modal.id !== 'loading') {
+                    modal.remove();
+                }
+            });
             
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';

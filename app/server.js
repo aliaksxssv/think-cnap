@@ -583,9 +583,12 @@ app.get('/api/admin/mitre', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `
-      SELECT id, tactic, technique, slug, created_at, updated_at
-      FROM mitre_ttps
-      ORDER BY tactic, technique
+      SELECT m.id, m.tactic, m.technique, m.slug, m.created_at, m.updated_at,
+             COUNT(e.id) AS example_count
+      FROM mitre_ttps m
+      LEFT JOIN mitre_exploitation_examples e ON m.id = e.ttp_id
+      GROUP BY m.id
+      ORDER BY m.tactic, m.technique
       `
     );
     res.json(rows);
