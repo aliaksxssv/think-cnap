@@ -101,6 +101,37 @@ if [ -d "$SEED_DATA_DIR" ]; then
             psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$SEED_DATA_DIR/measure_ttp_relationships.sql" || echo "Warning: measure_ttp_relationships import failed"
         fi
         
+        # Ensure sequences are aligned after seed imports (avoid duplicate key errors)
+        echo "Resetting sequences..."
+        psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 <<'SQL'
+DO $$
+DECLARE
+  rec RECORD;
+BEGIN
+  FOR rec IN
+    SELECT table_name
+    FROM information_schema.columns
+    WHERE column_name = 'id'
+      AND table_schema = 'public'
+      AND table_name IN (
+        'security_domains',
+        'security_controls',
+        'action_items',
+        'users',
+        'scoring',
+        'mitre_ttps',
+        'mitre_exploitation_examples',
+        'measure_ttp_relationships'
+      )
+  LOOP
+    EXECUTE format(
+      'SELECT setval(pg_get_serial_sequence(%L, %L), COALESCE(MAX(id), 1), true) FROM %I',
+      rec.table_name, 'id', rec.table_name
+    );
+  END LOOP;
+END $$;
+SQL
+
         echo "Database seeding completed"
     fi
 else
