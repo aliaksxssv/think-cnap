@@ -23,16 +23,6 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# Mobile app assets - shorter cache for development
-/mobile-app/*.css
-  Cache-Control: public, max-age=300, must-revalidate
-
-/mobile-app/*.js
-  Cache-Control: public, max-age=300, must-revalidate
-
-/mobile-app/*.html
-  Cache-Control: public, max-age=300, must-revalidate
-
 # Other CSS and JS files
 /*.css
   Cache-Control: public, max-age=31536000, immutable

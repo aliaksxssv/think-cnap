@@ -29,7 +29,7 @@ class ThinkCNAPAuth {
 
     async checkExistingSession() {
         try {
-            // Check both mobile and desktop storage keys
+            // Check both legacy and current storage keys
             const token = localStorage.getItem('think_cnap_token') || localStorage.getItem('access_token');
             const userData = localStorage.getItem('think_cnap_user');
             
