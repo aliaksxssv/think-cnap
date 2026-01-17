@@ -22,12 +22,6 @@ database:
   # OR use existing Kubernetes secret (recommended):
   # existingSecret: "think-cnap-db-secret"
 
-# Resend API key for email sending (REQUIRED)
-secrets:
-  resendApiKey: "re_your_resend_api_key"
-  # OR use existing Kubernetes secret:
-  # existingSecret: "think-cnap-secrets"
-
 # Google OAuth Client ID (REQUIRED)
 secrets:
   googleClientId: "your-google-client-id.apps.googleusercontent.com"
@@ -35,36 +29,7 @@ secrets:
   # existingSecret: "think-cnap-secrets"
 ```
 
-**Using Kubernetes Secrets (Recommended for Production):**
-
-```bash
-# Create database secret
-kubectl create secret generic think-cnap-db-secret \
-  --from-literal=password='your-secure-password' \
-  --namespace think-cnap
-
-# Create app secrets
-kubectl create secret generic think-cnap-secrets \
-  --from-literal=resendApiKey='re_your_resend_api_key' \
-  --from-literal=googleClientId='your-google-client-id.apps.googleusercontent.com' \
-  --namespace think-cnap
-
-# Then reference in values.yaml:
-# database:
-#   existingSecret: "think-cnap-db-secret"
-# secrets:
-#   existingSecret: "think-cnap-secrets"
-```
-
 ### 2. Install the Chart
-
-**From local chart:**
-```bash
-helm install my-think-cnap ./charts \
-  --namespace think-cnap \
-  --create-namespace \
-  -f my-values.yaml
-```
 
 **From Helm repository:**
 ```bash
@@ -83,43 +48,14 @@ kubectl port-forward svc/my-think-cnap 8080:80 -n think-cnap
 # Open http://localhost:8080
 ```
 
-## Required Values
+## Default Admin Account
 
-| Value | Description | Required |
-|-------|-------------|----------|
-| `database.password` | PostgreSQL password | ✅ Yes |
-| `database.existingSecret` | Use existing Kubernetes secret for DB password | Alternative |
-| `secrets.resendApiKey` | Resend API key for email sending | ✅ Yes |
-| `secrets.googleClientId` | Google OAuth Client ID | ✅ Yes |
-| `secrets.existingSecret` | Use existing Kubernetes secret for app secrets | Alternative |
+On first database initialization, a default admin user is created:
 
-## Optional Configuration
+- Username: `admin@thinkcnap.local`
+- Password: `thinkcnap`
 
-```yaml
-# Storage
-persistence:
-  size: 1Gi
-  storageClass: "fast-ssd"
-
-# Service
-service:
-  type: LoadBalancer  # or NodePort, ClusterIP
-
-# Resources
-resources:
-  app:
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-  database:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-
-# Security
-networkPolicy:
-  enabled: true  # Enable for production
-```
+Change this after first login.
 
 ## Architecture
 
@@ -154,6 +90,3 @@ POD=$(kubectl get pod -l app.kubernetes.io/name=think-cnap -n think-cnap -o json
 kubectl exec -it $POD -c database -n think-cnap -- psql -U thinkcnap -d thinkcnap
 ```
 
-## License
-
-MIT License

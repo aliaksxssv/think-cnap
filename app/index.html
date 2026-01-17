@@ -553,12 +553,7 @@
           </button>
         </form>
         
-        <div class="text-center">
-          <button type="button" onclick="showForgotPasswordModal()" 
-                  class="text-cyan-400 hover:text-cyan-300 text-sm underline">
-            Forgot Password?
-          </button>
-        </div>
+        <div class="text-center"></div>
       </div>
 
       <!-- Sign Up Form -->
@@ -614,29 +609,6 @@
         </div>
       </div>
       
-      <!-- Email Verification Notice -->
-      <div id="verification-notice" class="hidden mb-4 p-4 bg-blue-800 rounded">
-        <h3 class="text-lg font-semibold text-blue-300 mb-2">Email Verification Required</h3>
-        <p class="text-blue-200 text-sm mb-3" id="verification-message">
-          Please check your email and click the verification link to activate your account.
-        </p>
-
-        <div class="flex space-x-3">
-          <button onclick="resendVerificationEmail()" 
-                  class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded">
-            Resend Email
-          </button>
-          <a href="/api/dev-links" target="_blank"
-             class="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-sm rounded no-underline">
-            Dev Links
-          </a>
-          <button onclick="hideVerificationNotice()" 
-                  class="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-sm rounded">
-            Close
-          </button>
-        </div>
-      </div>
-
     </div>
   </div>
 
@@ -1313,126 +1285,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Forgot Password functions
-function showForgotPasswordModal() {
-  let modal = document.getElementById('forgot-password-modal');
-  if (!modal) {
-    modal = createForgotPasswordModal();
-    document.body.appendChild(modal);
-  }
-  modal.classList.remove('hidden');
-}
-
-function createForgotPasswordModal() {
-  const modal = document.createElement('div');
-  modal.id = 'forgot-password-modal';
-  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-  modal.innerHTML = `
-    <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
-      <h2 class="text-2xl font-bold text-white mb-6">Reset Password</h2>
-      
-      <form id="forgot-password-form" class="space-y-4">
-        <div>
-          <label for="reset-email" class="block text-sm font-medium text-gray-300 mb-2">
-            Email Address
-          </label>
-          <input type="email" id="reset-email" name="email" required
-                 class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                 placeholder="Enter your email address">
-        </div>
-        
-        <div id="forgot-password-error" class="text-red-400 text-sm hidden"></div>
-        <div id="forgot-password-success" class="text-green-400 text-sm hidden"></div>
-        
-        <div class="flex space-x-4 pt-4">
-          <button type="submit" 
-                  class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2 px-4 rounded-md transition duration-200">
-            Send Reset Link
-          </button>
-          <button type="button" onclick="hideForgotPasswordModal()"
-                  class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-md transition duration-200">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  `;
-
-  // Add form submit handler
-  modal.querySelector('#forgot-password-form').addEventListener('submit', handleForgotPasswordSubmit);
-  
-  return modal;
-}
-
-function hideForgotPasswordModal() {
-  const modal = document.getElementById('forgot-password-modal');
-  if (modal) {
-    modal.classList.add('hidden');
-    // Clear form
-    const form = modal.querySelector('#forgot-password-form');
-    if (form) form.reset();
-    // Clear messages
-    const errorDiv = modal.querySelector('#forgot-password-error');
-    const successDiv = modal.querySelector('#forgot-password-success');
-    if (errorDiv) errorDiv.classList.add('hidden');
-    if (successDiv) successDiv.classList.add('hidden');
-  }
-}
-
-async function handleForgotPasswordSubmit(e) {
-  e.preventDefault();
-  
-  const formData = new FormData(e.target);
-  const email = formData.get('email');
-  
-  const errorDiv = document.getElementById('forgot-password-error');
-  const successDiv = document.getElementById('forgot-password-success');
-  
-  // Clear previous messages
-  if (errorDiv) errorDiv.classList.add('hidden');
-  if (successDiv) successDiv.classList.add('hidden');
-  
-  try {
-    const response = await fetch('/api/auth/forgot-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email })
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      showForgotPasswordSuccess('Password reset link sent to your email. Please check your inbox.');
-      setTimeout(() => {
-        hideForgotPasswordModal();
-      }, 3000);
-    } else {
-      showForgotPasswordError(result.error || 'Failed to send reset link');
-    }
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    showForgotPasswordError('Network error. Please try again.');
-  }
-}
-
-function showForgotPasswordError(message) {
-  const errorDiv = document.getElementById('forgot-password-error');
-  if (errorDiv) {
-    errorDiv.textContent = message;
-    errorDiv.classList.remove('hidden');
-  }
-}
-
-function showForgotPasswordSuccess(message) {
-  const successDiv = document.getElementById('forgot-password-success');
-  if (successDiv) {
-    successDiv.textContent = message;
-    successDiv.classList.remove('hidden');
-  }
-}
-
 // Debug Google OAuth status (for troubleshooting)
 function debugGoogleOAuth() {
   const info = {
@@ -1567,48 +1419,7 @@ async function handleEmailAuth(event, type) {
   }
   
   if (result.success) {
-    if (result.verification_required) {
-      // Show verification notice for signup
-      showVerificationNotice(result.message, result.email);
-    }
-    // If no verification required, auth.js will handle the success flow
-  } else {
-    if (result.verification_required) {
-      // Show verification notice for signin
-      showVerificationNotice(result.error, result.email);
-    } else {
-      auth.showError(result.error);
-    }
-  }
-}
-
-let currentVerificationEmail = null;
-
-function showVerificationNotice(message, email) {
-  currentVerificationEmail = email;
-  const notice = document.getElementById('verification-notice');
-  const messageEl = document.getElementById('verification-message');
-  
-  messageEl.textContent = message;
-  notice.classList.remove('hidden');
-}
-
-function hideVerificationNotice() {
-  const notice = document.getElementById('verification-notice');
-  notice.classList.add('hidden');
-  currentVerificationEmail = null;
-}
-
-async function resendVerificationEmail() {
-  if (!currentVerificationEmail) {
-    auth.showError('No email address available for verification');
-    return;
-  }
-  
-  const result = await auth.resendVerificationEmail(currentVerificationEmail);
-  
-  if (result.success) {
-    auth.showSuccess(result.message);
+    // auth.js will handle the success flow
   } else {
     auth.showError(result.error);
   }
@@ -1616,52 +1427,8 @@ async function resendVerificationEmail() {
 
 // Initialize authentication and dashboard
 document.addEventListener('DOMContentLoaded', async function() {
-  // Check for email verification token in URL
   const urlParams = new URLSearchParams(window.location.search);
-  const verificationToken = urlParams.get('token');
   const shouldShowSignIn = urlParams.get('signin');
-  
-  if (verificationToken && window.location.pathname === '/verify-email') {
-    // Handle email verification
-    console.log('Processing email verification token');
-    
-    // Show loading state
-    const authModal = document.getElementById('auth-modal');
-    if (authModal) {
-      authModal.innerHTML = `
-        <div class="bg-gray-800 p-8 rounded-lg max-w-md w-full mx-4 text-center">
-          <h2 class="text-2xl font-bold text-cyan-300 mb-4">Verifying Email...</h2>
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-300 mx-auto"></div>
-    </div>
-      `;
-    }
-    
-    // Initialize auth first (only if not already initialized)
-    if (!auth) {
-      auth = new ThinkCNAPAuth();
-    }
-    while (!auth.isInitialized) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    // Verify email
-    const result = await auth.verifyEmail(verificationToken);
-    
-    if (result.success) {
-      // Success - user will be automatically logged in
-      auth.showSuccess(result.message);
-      // Clear URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      // Show error and reset to normal auth modal
-      if (authModal) {
-        location.reload(); // Reload to show normal auth modal
-      }
-      auth.showError(result.error);
-    }
-    
-    return; // Exit early for verification flow
-  }
   
   // Normal authentication flow (only if not already initialized)
   if (!auth) {

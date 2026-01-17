@@ -219,14 +219,6 @@ async function handleAuthRoutes(env, request, corsHeaders) {
     return await handleSignOut(env, request, corsHeaders);
   }
   
-  if (path === '/api/auth/verify-email') {
-    return await handleEmailVerification(env, request, corsHeaders);
-  }
-  
-  if (path === '/api/auth/resend-verification') {
-    return await handleResendVerification(env, request, corsHeaders);
-  }
-  
   if (path === '/api/auth/google') {
     return await handleGoogleAuth(env, request, corsHeaders);
   }
@@ -312,17 +304,6 @@ async function createUsersTable(db) {
     }
   }
   
-  // Create email verification tokens table
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS email_verification_tokens (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      token TEXT NOT NULL UNIQUE,
-      expires_at TEXT NOT NULL,
-      used_at TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `).run();
 }
 
 async function handleSignUp(env, request, corsHeaders) {
@@ -357,32 +338,17 @@ async function handleSignUp(env, request, corsHeaders) {
     // Hash password
     const passwordHash = await hashPassword(password);
     
-    // Create user (unverified by default)
+    // Create user (email is marked verified; no email is sent)
     const result = await env.DB.prepare(`
       INSERT INTO users (email, password_hash, name, email_verified, created_at, updated_at)
-      VALUES (?, ?, ?, 0, datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, 1, datetime('now'), datetime('now'))
     `).bind(email, passwordHash, email.split('@')[0]).run();
-    
-    const userId = result.meta.last_row_id;
-    
-    // Generate verification token
-    const verificationToken = await generateVerificationToken();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    
-    await env.DB.prepare(`
-      INSERT INTO email_verification_tokens (user_id, token, expires_at)
-      VALUES (?, ?, ?)
-    `).bind(userId, verificationToken, expiresAt.toISOString()).run();
-    
-    // Send verification email
-    const verificationUrl = `${new URL(request.url).origin}/verify-email.html?token=${verificationToken}`;
-    const emailSent = await sendVerificationEmail(env, email, verificationUrl);
     
     return new Response(JSON.stringify({
       success: true,
-      message: 'Registration successful! Please check your email to verify your account.',
+      message: 'Registration successful!',
       email: email,
-      verification_required: true
+      verification_required: false
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -853,255 +819,6 @@ async function verifyJWT(token, secret) {
   } catch (error) {
     console.error('JWT verification error:', error);
     return null;
-  }
-}
-
-// Email verification handlers
-async function handleEmailVerification(env, request, corsHeaders) {
-  if (request.method !== 'POST' && request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-  
-  try {
-    const url = new URL(request.url);
-    let token;
-    
-    if (request.method === 'GET') {
-      token = url.searchParams.get('token');
-    } else {
-      const body = await request.json();
-      token = body.token;
-    }
-    
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'Verification token is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Find the verification token
-    const verificationRecord = await env.DB.prepare(`
-      SELECT vt.*, u.email, u.name, u.is_admin 
-      FROM email_verification_tokens vt
-      JOIN users u ON vt.user_id = u.id
-      WHERE vt.token = ? AND vt.used_at IS NULL
-    `).bind(token).first();
-    
-    if (!verificationRecord) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired verification token' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Check if token is expired
-    const now = new Date();
-    const expiresAt = new Date(verificationRecord.expires_at);
-    if (now > expiresAt) {
-      return new Response(JSON.stringify({ error: 'Verification token has expired' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Mark user as verified and token as used
-    await env.DB.prepare(`
-      UPDATE users 
-      SET email_verified = 1, email_verified_at = datetime('now'), updated_at = datetime('now')
-      WHERE id = ?
-    `).bind(verificationRecord.user_id).run();
-    
-    await env.DB.prepare(`
-      UPDATE email_verification_tokens 
-      SET used_at = datetime('now')
-      WHERE token = ?
-    `).bind(token).run();
-    
-    // Create user object and JWT token for immediate login
-    const userObj = {
-      id: verificationRecord.user_id,
-      email: verificationRecord.email,
-      name: verificationRecord.name,
-      isAnonymous: false,
-      email_verified: true,
-      is_admin: Boolean(verificationRecord.is_admin)
-    };
-    
-    const jwtToken = await generateJWT(userObj, env.JWT_SECRET || 'default-secret');
-    
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Email verified successfully! You can now access your account.',
-      user: userObj,
-      token: jwtToken
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-    
-  } catch (error) {
-    console.error('Email verification error:', error);
-    return new Response(JSON.stringify({ error: 'Email verification failed' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-}
-
-async function handleResendVerification(env, request, corsHeaders) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-  
-  try {
-    const { email } = await request.json();
-    
-    if (!email) {
-      return new Response(JSON.stringify({ error: 'Email is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Find user
-    const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
-      .bind(email).first();
-    
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    if (user.email_verified) {
-      return new Response(JSON.stringify({ error: 'Email is already verified' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Invalidate existing tokens
-    await env.DB.prepare(`
-      UPDATE email_verification_tokens 
-      SET used_at = datetime('now')
-      WHERE user_id = ? AND used_at IS NULL
-    `).bind(user.id).run();
-    
-    // Generate new verification token
-    const verificationToken = await generateVerificationToken();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    
-    await env.DB.prepare(`
-      INSERT INTO email_verification_tokens (user_id, token, expires_at)
-      VALUES (?, ?, ?)
-    `).bind(user.id, verificationToken, expiresAt.toISOString()).run();
-    
-    // Send verification email
-    const verificationUrl = `${new URL(request.url).origin}/verify-email.html?token=${verificationToken}`;
-    await sendVerificationEmail(env, email, verificationUrl);
-    
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Verification email sent! Please check your email.'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-    
-  } catch (error) {
-    console.error('Resend verification error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to resend verification email' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-}
-
-// Email verification utility functions
-async function generateVerificationToken() {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-}
-
-async function sendVerificationEmail(env, email, verificationUrl) {
-  try {
-    const resendApiKey = env.RESEND_API_KEY;
-    if (!resendApiKey) {
-      throw new Error('RESEND_API_KEY environment variable is not set');
-    }
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'ThinkCNAP <noreply@thinkcnap.org>',
-        to: email,
-        subject: 'Verify your ThinkCNAP account',
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Verify your ThinkCNAP account</title>
-          </head>
-          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 28px;">Welcome to ThinkCNAP!</h1>
-              <p style="color: #f0f0f0; margin: 10px 0 0 0;">Maturity Assessment & Attack Simulation Platform</p>
-            </div>
-            
-            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-              <h2 style="color: #333; margin-top: 0;">Verify Your Email Address</h2>
-              <p>Thank you for signing up! To complete your registration and access your security dashboard, please verify your email address by clicking the button below:</p>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${verificationUrl}" 
-                   style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-                  Verify Email Address
-                </a>
-              </div>
-              
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; background: #eee; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 14px;">
-                ${verificationUrl}
-              </p>
-              
-              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-                <p style="font-size: 14px; color: #666;">
-                  <strong>Important:</strong> This verification link will expire in 24 hours for security reasons.
-                </p>
-                <p style="font-size: 14px; color: #666;">
-                  If you didn't create a ThinkCNAP account, you can safely ignore this email.
-                </p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `
-      })
-    });
-    
-    if (response.ok) {
-      return true;
-    } else {
-      const error = await response.text();
-      console.error(`Resend API error (${response.status}): ${error}`);
-      return false;
-    }
-  } catch (error) {
-    console.error('Failed to send verification email:', error);
-    return false;
   }
 }
 

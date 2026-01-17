@@ -57,28 +57,6 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Email verification tokens table
-CREATE TABLE IF NOT EXISTS email_verification_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    expires_at TIMESTAMP NOT NULL,
-    used_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- Password reset tokens table
-CREATE TABLE IF NOT EXISTS password_reset_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    expires_at TIMESTAMP NOT NULL,
-    used_at TIMESTAMP DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
 -- MITRE TTPs table
 CREATE TABLE IF NOT EXISTS mitre_ttps (
     id SERIAL PRIMARY KEY,
@@ -120,9 +98,6 @@ CREATE INDEX IF NOT EXISTS idx_action_items_tags ON action_items(tags);
 CREATE INDEX IF NOT EXISTS idx_scoring_measure_id ON scoring(measure_id);
 CREATE INDEX IF NOT EXISTS idx_scoring_user_id ON scoring(user_id);
 CREATE INDEX IF NOT EXISTS idx_scoring_is_default ON scoring(is_default);
-CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
-CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
-CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at ON password_reset_tokens(expires_at);
 CREATE INDEX IF NOT EXISTS idx_mitre_exploitation_examples_ttp_id ON mitre_exploitation_examples(ttp_id);
 CREATE INDEX IF NOT EXISTS idx_measure_ttp_relationships_measure_id ON measure_ttp_relationships(measure_id);
 CREATE INDEX IF NOT EXISTS idx_measure_ttp_relationships_ttp_id ON measure_ttp_relationships(ttp_id);

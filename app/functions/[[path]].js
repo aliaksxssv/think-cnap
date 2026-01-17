@@ -33,8 +33,6 @@ const DESKTOP_ONLY_PATHS = [
   '/_redirects',
   '/mitre.html',
   '/admin.html',
-  '/reset-password.html',
-  '/verify-email.html',
   '/mobile-app/', // Don't redirect mobile app path itself
 ];
 

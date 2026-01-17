@@ -1870,12 +1870,7 @@ class MobileApp {
         console.log('✅ Email authentication successful');
         await this.loadApp();
       } else {
-        // Handle errors and verification requirements (same as desktop)
-        if (data.verification_required) {
-          this.showAuthError(`${data.error || 'Email verification required'}. Please check your email and verify your account.`);
-        } else {
-          this.showAuthError(data.error || 'Sign in failed');
-        }
+        this.showAuthError(data.error || 'Sign in failed');
       }
     } catch (error) {
       console.error('❌ Email signin failed:', error);
@@ -1914,16 +1909,10 @@ class MobileApp {
       console.log('📧 Email signup response:', data);
       
       if (response.ok) {
-        if (data.verification_required) {
-          // Show verification message (same as desktop)
-          this.showAuthSuccess(`${data.message || 'Registration successful! Please check your email and verify your account before signing in.'}`);
-        } else {
-          // Handle successful signup without verification (same as desktop)
-          await this.setUserSession(data.user, data.token);
-          console.log('✅ Email signup successful');
-          this.showAuthSuccess('Registration successful! Welcome to ThinkCNAP!');
-          await this.loadApp();
-        }
+        await this.setUserSession(data.user, data.token);
+        console.log('✅ Email signup successful');
+        this.showAuthSuccess('Registration successful! Welcome to ThinkCNAP!');
+        await this.loadApp();
       } else {
         this.showAuthError(data.error || 'Sign up failed');
       }

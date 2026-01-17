@@ -1,7 +1,7 @@
--- Default admin user (email: admin, password: thinkcnap)
+-- Default admin user (email: admin@thinkcnap.local, password: thinkcnap)
 INSERT INTO users (email, password_hash, name, is_admin, email_verified, email_verified_at, created_at, updated_at)
 VALUES (
-  'admin',
+  'admin@thinkcnap.local',
   'ebf6ee48748ed047906e9d8b011a28e04cec8866aabfd9d23ce4bbb341422822',
   'admin',
   TRUE,

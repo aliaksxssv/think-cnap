@@ -323,18 +323,16 @@ class ThinkCNAPAuth {
             const data = await response.json();
             
             if (response.ok) {
-                if (data.verification_required) {
-                    return { 
-                        success: true, 
-                        verification_required: true,
-                        message: data.message,
-                        email: data.email
-                    };
-                } else {
-                    await this.setUserSession(data.user, data.token);
-                    this.onAuthStateChange('signed-in');
-                    return { success: true };
-                }
+                await this.setUserSession(data.user, data.token);
+                this.onAuthStateChange('signed-in');
+                return { success: true };
+            } else {
+                return { success: false, error: data.error };
+            }
+            if (response.ok) {
+                await this.setUserSession(data.user, data.token);
+                this.onAuthStateChange('signed-in');
+                return { success: true };
             } else {
                 return { success: false, error: data.error };
             }
@@ -493,58 +491,6 @@ class ThinkCNAPAuth {
             
             // Remove click outside listener when signed out
             document.removeEventListener('click', this.handleClickOutside.bind(this));
-        }
-    }
-
-    async verifyEmail(token) {
-        try {
-            console.log('Verifying email with token:', token);
-            
-            const response = await fetch('/api/auth/verify-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ token })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                await this.setUserSession(data.user, data.token);
-                this.onAuthStateChange('signed-in');
-                return { success: true, message: data.message };
-            } else {
-                return { success: false, error: data.error };
-            }
-        } catch (error) {
-            console.error('Email verification error:', error);
-            return { success: false, error: 'Email verification failed. Please try again.' };
-        }
-    }
-    
-    async resendVerificationEmail(email) {
-        try {
-            console.log('Resending verification email to:', email);
-            
-            const response = await fetch('/api/auth/resend-verification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                return { success: true, message: data.message };
-            } else {
-                return { success: false, error: data.error };
-            }
-        } catch (error) {
-            console.error('Resend verification error:', error);
-            return { success: false, error: 'Failed to resend verification email. Please try again.' };
         }
     }
 
