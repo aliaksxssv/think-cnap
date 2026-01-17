@@ -3,7 +3,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/aliaksxssv/think-cnap/think-cnap
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   tag: "latest"
 
 imagePullSecrets: []
@@ -18,7 +18,7 @@ service:
 database:
   image:
     repository: ghcr.io/aliaksxssv/think-cnap/think-cnap-db
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     tag: "latest"
   name: "thinkcnap"
   user: "thinkcnap"

@@ -243,7 +243,7 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      'SELECT id, email, name, google_id, email_verified FROM users WHERE email = $1',
+      'SELECT id, email, name, google_id, email_verified, is_admin FROM users WHERE email = $1',
       [email]
     );
 
@@ -253,7 +253,7 @@ app.post('/api/auth/google', async (req, res) => {
         `
         INSERT INTO users (email, name, google_id, email_verified, email_verified_at, created_at, updated_at)
         VALUES ($1, $2, $3, 1, now(), now(), now())
-        RETURNING id, email, name, google_id, email_verified
+        RETURNING id, email, name, google_id, email_verified, is_admin
         `,
         [email, name || email.split('@')[0], googleId]
       );
@@ -264,7 +264,7 @@ app.post('/api/auth/google', async (req, res) => {
         UPDATE users
         SET google_id = $1, email_verified = 1, email_verified_at = now(), updated_at = now()
         WHERE id = $2
-        RETURNING id, email, name, google_id, email_verified
+        RETURNING id, email, name, google_id, email_verified, is_admin
         `,
         [googleId, user.id]
       );
@@ -278,7 +278,7 @@ app.post('/api/auth/google', async (req, res) => {
       googleId: user.google_id,
       isAnonymous: false,
       email_verified: true,
-      is_admin: false
+      is_admin: Boolean(user.is_admin)
     };
 
     const token = await generateJWT(userObj, getJwtSecret());
@@ -305,7 +305,7 @@ app.post('/api/auth/signup', async (req, res) => {
       `
       INSERT INTO users (email, password_hash, name, email_verified, created_at, updated_at)
       VALUES ($1, $2, $3, 1, now(), now())
-      RETURNING id, email, name
+      RETURNING id, email, name, is_admin
       `,
       [email, passwordHash, email.split('@')[0]]
     );
@@ -316,7 +316,7 @@ app.post('/api/auth/signup', async (req, res) => {
       name: insert.rows[0].name,
       isAnonymous: false,
       email_verified: true,
-      is_admin: false
+      is_admin: Boolean(insert.rows[0].is_admin)
     };
 
     const token = await generateJWT(userObj, getJwtSecret());
@@ -334,7 +334,7 @@ app.post('/api/auth/signin', async (req, res) => {
     }
 
     const result = await pool.query(
-      'SELECT id, email, name, password_hash, email_verified FROM users WHERE email = $1',
+      'SELECT id, email, name, password_hash, email_verified, is_admin FROM users WHERE email = $1',
       [email]
     );
 
@@ -354,7 +354,7 @@ app.post('/api/auth/signin', async (req, res) => {
       name: user.name,
       isAnonymous: false,
       email_verified: Boolean(user.email_verified),
-      is_admin: false
+      is_admin: Boolean(user.is_admin)
     };
 
     const token = await generateJWT(userObj, getJwtSecret());

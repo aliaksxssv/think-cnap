@@ -47,10 +47,11 @@ if [ -d "$SEED_DATA_DIR" ]; then
         # 1. security_domains (no dependencies)
         # 2. security_controls (depends on domains)
         # 3. action_items (depends on controls)
-        # 4. mitre_ttps (no dependencies)
-        # 5. scoring_default (depends on action_items)
-        # 6. mitre_exploitation_examples (depends on mitre_ttps)
-        # 7. measure_ttp_relationships (depends on action_items and mitre_ttps)
+        # 4. admin_user (no dependencies)
+        # 5. mitre_ttps (no dependencies)
+        # 6. scoring_default (depends on action_items)
+        # 7. mitre_exploitation_examples (depends on mitre_ttps)
+        # 8. measure_ttp_relationships (depends on action_items and mitre_ttps)
         
         # Import security_domains first (no dependencies)
         if [ -f "$SEED_DATA_DIR/security_domains.sql" ]; then
@@ -68,6 +69,12 @@ if [ -d "$SEED_DATA_DIR" ]; then
         if [ -f "$SEED_DATA_DIR/action_items.sql" ]; then
             echo "Importing action_items..."
             psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$SEED_DATA_DIR/action_items.sql" || echo "Warning: action_items import failed"
+        fi
+
+        # Import admin_user (no dependencies)
+        if [ -f "$SEED_DATA_DIR/admin_user.sql" ]; then
+            echo "Importing admin_user..."
+            psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$SEED_DATA_DIR/admin_user.sql" || echo "Warning: admin_user import failed"
         fi
         
         # Import mitre_ttps (no dependencies)
