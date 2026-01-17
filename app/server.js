@@ -663,12 +663,13 @@ app.post('/api/admin/domains', async (req, res) => {
   if (!admin) return;
   try {
     const { name } = req.body || {};
-    if (!name) {
+    const domainName = String(name || '').trim();
+    if (!domainName) {
       return res.status(400).json({ error: 'Domain name is required' });
     }
     const result = await pool.query(
       'INSERT INTO security_domains (name) VALUES ($1) RETURNING id',
-      [name]
+      [domainName]
     );
     res.json({ success: true, id: result.rows[0].id, message: 'Domain created successfully' });
   } catch (error) {
@@ -720,7 +721,10 @@ app.post('/api/admin/controls', async (req, res) => {
   if (!admin) return;
   try {
     const { code, text, domain_id } = req.body || {};
-    if (!code || !text || !domain_id) {
+    const controlCode = String(code || '').trim();
+    const controlText = String(text || '').trim();
+    const domainId = Number(domain_id);
+    if (!controlCode || !controlText || !Number.isFinite(domainId)) {
       return res.status(400).json({ error: 'code, text, and domain_id are required' });
     }
     const result = await pool.query(
@@ -729,7 +733,7 @@ app.post('/api/admin/controls', async (req, res) => {
       VALUES ($1, $2, $3)
       RETURNING id
       `,
-      [code, text, domain_id]
+      [controlCode, controlText, domainId]
     );
     res.json({ success: true, id: result.rows[0].id, message: 'Control created successfully' });
   } catch (error) {
@@ -742,13 +746,19 @@ app.put('/api/admin/controls/:id', async (req, res) => {
   if (!admin) return;
   try {
     const { code, text, domain_id } = req.body || {};
+    const controlCode = String(code || '').trim();
+    const controlText = String(text || '').trim();
+    const domainId = Number(domain_id);
+    if (!controlCode || !controlText || !Number.isFinite(domainId)) {
+      return res.status(400).json({ error: 'code, text, and domain_id are required' });
+    }
     const result = await pool.query(
       `
       UPDATE security_controls
       SET code = $1, text = $2, domain_id = $3
       WHERE id = $4
       `,
-      [code, text, domain_id, req.params.id]
+      [controlCode, controlText, domainId, req.params.id]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Control not found' });
@@ -819,7 +829,11 @@ app.post('/api/admin/measures', async (req, res) => {
   if (!admin) return;
   try {
     const { measure_id, measure, comment, tags, control_id, ttp_ids, impact, effort, initial_maturity, present_maturity, desired_maturity } = req.body || {};
-    if (!measure_id || !measure || !tags || !control_id) {
+    const measureId = String(measure_id || '').trim();
+    const measureText = String(measure || '').trim();
+    const measureTags = String(tags || '').trim();
+    const controlId = Number(control_id);
+    if (!measureId || !measureText || !measureTags || !Number.isFinite(controlId)) {
       return res.status(400).json({ error: 'measure_id, measure, tags, and control_id are required' });
     }
     const insertResult = await pool.query(
@@ -828,7 +842,7 @@ app.post('/api/admin/measures', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id
       `,
-      [measure_id, measure, comment || '', tags, control_id]
+      [measureId, measureText, comment || '', measureTags, controlId]
     );
     await pool.query(
       `
@@ -846,10 +860,12 @@ app.post('/api/admin/measures', async (req, res) => {
       ]
     );
     if (Array.isArray(ttp_ids) && ttp_ids.length > 0) {
-      for (const ttpId of ttp_ids) {
+      for (const ttpIdRaw of ttp_ids) {
+        const ttpId = Number(ttpIdRaw);
+        if (!Number.isFinite(ttpId)) continue;
         await pool.query(
           'INSERT INTO measure_ttp_relationships (measure_id, ttp_id) VALUES ($1, $2)',
-          [measure_id, ttpId]
+          [measureId, ttpId]
         );
       }
     }
@@ -864,13 +880,20 @@ app.put('/api/admin/measures/:id', async (req, res) => {
   if (!admin) return;
   try {
     const { measure_id, measure, comment, tags, control_id, ttp_ids, impact, effort, initial_maturity, present_maturity, desired_maturity } = req.body || {};
+    const measureId = String(measure_id || '').trim();
+    const measureText = String(measure || '').trim();
+    const measureTags = String(tags || '').trim();
+    const controlId = Number(control_id);
+    if (!measureId || !measureText || !measureTags || !Number.isFinite(controlId)) {
+      return res.status(400).json({ error: 'measure_id, measure, tags, and control_id are required' });
+    }
     const result = await pool.query(
       `
       UPDATE action_items
       SET measure_id = $1, measure = $2, comment = $3, tags = $4, control_id = $5
       WHERE id = $6
       `,
-      [measure_id, measure, comment || '', tags, control_id, req.params.id]
+      [measureId, measureText, comment || '', measureTags, controlId, req.params.id]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Measure not found' });
@@ -887,7 +910,7 @@ app.put('/api/admin/measures/:id', async (req, res) => {
         initial_maturity ?? -1,
         present_maturity ?? -1,
         desired_maturity ?? -1,
-        measure_id
+        measureId
       ]
     );
     if (updateScore.rowCount === 0) {
@@ -898,7 +921,7 @@ app.put('/api/admin/measures/:id', async (req, res) => {
         VALUES ($1, NULL, $2, $3, $4, $5, $6, 1)
         `,
         [
-          measure_id,
+          measureId,
           impact || 'medium',
           effort || 'medium',
           initial_maturity ?? -1,
@@ -908,12 +931,14 @@ app.put('/api/admin/measures/:id', async (req, res) => {
       );
     }
     if (ttp_ids !== undefined) {
-      await pool.query('DELETE FROM measure_ttp_relationships WHERE measure_id = $1', [measure_id]);
+      await pool.query('DELETE FROM measure_ttp_relationships WHERE measure_id = $1', [measureId]);
       if (Array.isArray(ttp_ids) && ttp_ids.length > 0) {
-        for (const ttpId of ttp_ids) {
+        for (const ttpIdRaw of ttp_ids) {
+          const ttpId = Number(ttpIdRaw);
+          if (!Number.isFinite(ttpId)) continue;
           await pool.query(
             'INSERT INTO measure_ttp_relationships (measure_id, ttp_id) VALUES ($1, $2)',
-            [measure_id, ttpId]
+            [measureId, ttpId]
           );
         }
       }
