@@ -281,6 +281,11 @@ class ThinkCNAPAuth {
     async handleGoogleCallback(response) {
         try {
             console.log('Google OAuth callback received');
+
+            if (!this.isGoogleClientConfigured()) {
+                this.showError('Google Sign-In is not configured. Set GOOGLE_CLIENT_ID to enable it.');
+                return;
+            }
             
             const result = await fetch('/api/auth/google', {
                 method: 'POST',
