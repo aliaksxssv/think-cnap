@@ -2,6 +2,10 @@
 
 Helm chart for deploying ThinkCNAP application to Kubernetes with PostgreSQL database.
 
+## Application Preview
+
+![ThinkCNAP application screenshot](images/thinkcnap_github.png)
+
 ## Prerequisites
 
 - Kubernetes cluster (1.19+)
@@ -53,10 +57,6 @@ helm install my-think-cnap think-cnap/think-cnap \
 kubectl port-forward svc/my-think-cnap 8080:80 -n think-cnap
 # Open http://localhost:8080
 ```
-
-## Application Preview
-
-![ThinkCNAP application screenshot](images/thinkcnap_github.png)
 
 ## Default Admin Account
 
