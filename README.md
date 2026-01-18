@@ -6,6 +6,10 @@ ThinkCNAP is a security maturity assessment and attack simulation platform for c
 
 ![ThinkCNAP application screenshot](images/thinkcnap_github.png)
 
+## SaaS Version
+
+Looking for a hosted option? The SaaS version is available at https://thinkcnap.org.
+
 ## Prerequisites
 
 - Kubernetes cluster (1.19+)
