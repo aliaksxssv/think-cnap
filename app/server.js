@@ -475,7 +475,7 @@ app.post('/api/auth/google', async (req, res) => {
       message.includes('audience') ||
       message.includes('issuer')
     ) {
-      return res.status(400).json({ error: 'Google authentication is not configured' });
+      return res.status(400).json({ error: 'Google token verification failed', message });
     }
     return res.status(500).json({ error: 'Google authentication failed', message: error.message });
   }
