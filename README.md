@@ -1,6 +1,6 @@
-# ThinkCNAP - Helm Chart Deployment
+# ThinkCNAP
 
-Helm chart for deploying ThinkCNAP application to Kubernetes with PostgreSQL database.
+ThinkCNAP is a security maturity assessment and attack simulation platform for cloud and Kubernetes environments. It helps teams map controls and measures to MITRE techniques, capture current vs desired maturity, and track progress over time. The app provides a structured workflow to assess domains, controls, and measures with consistent scoring. It includes an admin area for managing the security model and data catalog. A built-in dashboard visualizes results to support planning and prioritization. This repository packages the app and database for straightforward Kubernetes deployment.
 
 ## Application Preview
 
