@@ -5,7 +5,7 @@ class ThinkCNAPAuth {
         // Get Google Client ID from environment variable or meta tag
         this.googleClientId = window.GOOGLE_CLIENT_ID || 
                              document.querySelector('meta[name="google-client-id"]')?.content ||
-                             '314381672297-eu9jidtaeil3404mbfv11031jncugv8q.apps.googleusercontent.com';
+                             '';
         this.init();
     }
 
@@ -69,6 +69,11 @@ class ThinkCNAPAuth {
 
     async initGoogleAuth() {
         try {
+            if (!this.isGoogleClientConfigured()) {
+                this.disableGoogleSignIn('Google Sign-In is not configured');
+                return;
+            }
+
             // Load Google Identity Services
             if (!window.google) {
                 await this.loadGoogleScript();
@@ -102,11 +107,36 @@ class ThinkCNAPAuth {
             this.renderGoogleSignInButton('google-signin-button');
         } catch (error) {
             console.error('Google OAuth initialization failed:', error);
-            // Show fallback button immediately if initialization fails
-            const fallbackButton = document.getElementById('google-signin-fallback');
-            if (fallbackButton) {
-                fallbackButton.classList.remove('hidden');
-            }
+            this.disableGoogleSignIn('Google Sign-In is currently unavailable');
+        }
+    }
+
+    isGoogleClientConfigured() {
+        const value = String(this.googleClientId || '').trim();
+        return Boolean(value) && value !== '{{GOOGLE_CLIENT_ID}}';
+    }
+
+    disableGoogleSignIn(message) {
+        const googleButton = document.getElementById('google-signin-button');
+        if (googleButton) {
+            googleButton.innerHTML = '';
+        }
+
+        const fallback = document.getElementById('google-signin-fallback');
+        if (fallback) {
+            fallback.classList.remove('hidden');
+        }
+
+        const messageEl = document.getElementById('google-signin-message');
+        if (messageEl && message) {
+            messageEl.textContent = message;
+        }
+
+        const fallbackButton = document.getElementById('google-signin-fallback-button');
+        if (fallbackButton) {
+            fallbackButton.disabled = true;
+            fallbackButton.classList.add('opacity-50', 'cursor-not-allowed');
+            fallbackButton.removeAttribute('onclick');
         }
     }
 

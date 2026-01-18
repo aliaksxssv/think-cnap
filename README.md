@@ -28,7 +28,7 @@ secrets:
   # OR use existing Kubernetes secret:
   # existingSecret: "think-cnap-secrets"
 
-# Google OAuth Client ID (REQUIRED)
+# Google OAuth Client ID (optional)
 secrets:
   googleClientId: "your-google-client-id.apps.googleusercontent.com"
   # OR use existing Kubernetes secret:
@@ -53,6 +53,10 @@ helm install my-think-cnap think-cnap/think-cnap \
 kubectl port-forward svc/my-think-cnap 8080:80 -n think-cnap
 # Open http://localhost:8080
 ```
+
+## Application Preview
+
+![ThinkCNAP application screenshot](images/thinkcnap_github.png)
 
 ## Default Admin Account
 

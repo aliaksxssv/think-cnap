@@ -106,8 +106,8 @@ secrets:
   jwtSecret: ""  # REQUIRED: Must be set!
 
   # Google OAuth Client ID for authentication
-  # REQUIRED: Set googleClientId or use existingSecret
-  googleClientId: ""  # REQUIRED: Must be set!
+  # Optional: leave empty to disable Google Sign-In
+  googleClientId: ""
   
   # OR use existing Kubernetes secret (recommended for production)
   # existingSecret: "think-cnap-secrets"  # Secret must have 'jwtSecret' and 'googleClientId' keys
