@@ -301,12 +301,25 @@ class ThinkCNAPAuth {
                 const data = await result.json();
                 await this.setUserSession(data.user, data.token);
                 this.onAuthStateChange('signed-in');
-            } else {
-                throw new Error('Google authentication failed');
+                return;
             }
+
+            let errorMessage = 'Google authentication failed. Please try again.';
+            try {
+                const errorData = await result.json();
+                if (errorData?.message) {
+                    errorMessage = errorData.message;
+                } else if (errorData?.error) {
+                    errorMessage = errorData.error;
+                }
+            } catch (parseError) {
+                // ignore, keep default message
+            }
+
+            throw new Error(errorMessage);
         } catch (error) {
             console.error('Google authentication error:', error);
-            this.showError('Google authentication failed. Please try again.');
+            this.showError(error?.message || 'Google authentication failed. Please try again.');
         }
     }
 
