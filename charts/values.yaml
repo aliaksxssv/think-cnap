@@ -101,10 +101,14 @@ env:
 
  # Secrets for external services
 secrets:
+  # JWT secret for signing auth tokens
+  # REQUIRED: Set jwtSecret or use existingSecret
+  jwtSecret: ""  # REQUIRED: Must be set!
+
   # Google OAuth Client ID for authentication
   # REQUIRED: Set googleClientId or use existingSecret
   googleClientId: ""  # REQUIRED: Must be set!
   
   # OR use existing Kubernetes secret (recommended for production)
-  # existingSecret: "think-cnap-secrets"  # Secret must have 'googleClientId' key
+  # existingSecret: "think-cnap-secrets"  # Secret must have 'jwtSecret' and 'googleClientId' keys
   

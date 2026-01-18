@@ -5,6 +5,12 @@ const { Pool } = require('pg');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  console.error('JWT_SECRET is required');
+  process.exit(1);
+}
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -54,6 +60,79 @@ function decodeGoogleCredential(credential) {
   return JSON.parse(base64UrlDecode(parts[1]));
 }
 
+let googleJwksCache = { keys: null, expiresAt: 0 };
+
+async function getGoogleJwks() {
+  const now = Date.now();
+  if (googleJwksCache.keys && googleJwksCache.expiresAt > now) {
+    return googleJwksCache.keys;
+  }
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+  if (!response.ok) {
+    throw new Error('Failed to fetch Google JWKS');
+  }
+  const cacheControl = response.headers.get('cache-control') || '';
+  const maxAgeMatch = cacheControl.match(/max-age=(\d+)/);
+  const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1], 10) : 300;
+  const data = await response.json();
+  googleJwksCache = {
+    keys: data.keys || [],
+    expiresAt: now + maxAge * 1000
+  };
+  return googleJwksCache.keys;
+}
+
+function buildPemFromX5c(x5c) {
+  if (!x5c || !x5c.length) return null;
+  const cert = x5c[0].match(/.{1,64}/g).join('\n');
+  return `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----\n`;
+}
+
+async function verifyGoogleIdToken(token, clientId) {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Invalid JWT');
+  }
+
+  const header = JSON.parse(base64UrlDecode(parts[0]));
+  const payload = JSON.parse(base64UrlDecode(parts[1]));
+  const signature = Buffer.from(
+    parts[2].replace(/-/g, '+').replace(/_/g, '/'),
+    'base64'
+  );
+
+  const jwks = await getGoogleJwks();
+  const key = jwks.find(k => k.kid === header.kid);
+  const pem = buildPemFromX5c(key?.x5c);
+  if (!pem) {
+    throw new Error('Unable to find matching Google key');
+  }
+
+  const data = `${parts[0]}.${parts[1]}`;
+  const verified = crypto.verify('RSA-SHA256', Buffer.from(data), pem, signature);
+  if (!verified) {
+    throw new Error('Invalid Google token signature');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.exp && payload.exp < now) {
+    throw new Error('Google token expired');
+  }
+  if (payload.nbf && payload.nbf > now) {
+    throw new Error('Google token not active');
+  }
+
+  const issuer = payload.iss;
+  if (issuer !== 'accounts.google.com' && issuer !== 'https://accounts.google.com') {
+    throw new Error('Invalid Google token issuer');
+  }
+  if (clientId && payload.aud !== clientId) {
+    throw new Error('Invalid Google token audience');
+  }
+
+  return payload;
+}
+
 async function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
@@ -98,7 +177,7 @@ async function verifyJWT(token, secret) {
 }
 
 function getJwtSecret() {
-  return process.env.JWT_SECRET || 'default-secret';
+  return JWT_SECRET;
 }
 
 function generateSlug(tactic, technique) {
@@ -111,6 +190,29 @@ function generateSlug(tactic, technique) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   return `${tacticSlug}/${techniqueSlug}`;
+}
+
+function isValidEmail(value) {
+  return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function isValidPassword(value) {
+  return typeof value === 'string' && value.length >= 8;
+}
+
+function isValidTags(value) {
+  return ['aws', 'kubernetes', 'ai'].includes(value);
+}
+
+function isValidImpactEffort(value) {
+  return ['low', 'medium', 'high'].includes(value);
+}
+
+function normalizeOptionalText(value, maxLen) {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  return maxLen ? text.slice(0, maxLen) : text;
 }
 
 async function fetchUserByEmail(email) {
@@ -321,8 +423,12 @@ app.post('/api/auth/google', async (req, res) => {
       return res.status(400).json({ error: 'Google credential is required' });
     }
 
-    const payload = decodeGoogleCredential(credential);
+    const clientId = process.env.GOOGLE_CLIENT_ID || '';
+    const payload = await verifyGoogleIdToken(credential, clientId);
     const { email, name, sub: googleId } = payload;
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid Google account email' });
+    }
 
     let user = await fetchUserByEmail(email);
     if (!user) {
@@ -367,8 +473,11 @@ app.post('/api/auth/google', async (req, res) => {
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
     }
 
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -383,7 +492,7 @@ app.post('/api/auth/signup', async (req, res) => {
       VALUES ($1, $2, $3, now(), now())
       RETURNING id, email, name, is_admin
       `,
-      [email, passwordHash, email.split('@')[0]]
+      [email.trim(), passwordHash, email.split('@')[0]]
     );
 
     const userObj = {
@@ -404,8 +513,11 @@ app.post('/api/auth/signup', async (req, res) => {
 app.post('/api/auth/signin', async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    if (typeof password !== 'string' || !password) {
+      return res.status(400).json({ error: 'Password is required' });
     }
 
     const user = await fetchUserByEmail(email);
@@ -460,8 +572,11 @@ app.post('/api/auth/change-password', async (req, res) => {
     if (!payload) return;
 
     const { currentPassword, newPassword } = req.body || {};
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Current and new password are required' });
+    if (typeof currentPassword !== 'string' || !currentPassword) {
+      return res.status(400).json({ error: 'Current password is required' });
+    }
+    if (!isValidPassword(newPassword)) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long' });
     }
 
     const user = await fetchUserById(payload.id);
@@ -602,9 +717,13 @@ app.post('/api/admin/users', async (req, res) => {
   if (!admin) return;
   try {
     const { email, name, is_admin = false, password } = req.body || {};
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
     }
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+    const safeName = normalizeOptionalText(name, 120);
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ error: 'User already exists' });
@@ -616,7 +735,7 @@ app.post('/api/admin/users', async (req, res) => {
       VALUES ($1, $2, $3, $4, now(), now())
       RETURNING id
       `,
-      [email, name || null, hashedPassword, Boolean(is_admin)]
+      [email.trim(), safeName, hashedPassword, Boolean(is_admin)]
     );
     res.json({ success: true, id: result.rows[0].id, message: 'User created successfully' });
   } catch (error) {
@@ -629,13 +748,17 @@ app.put('/api/admin/users/:id', async (req, res) => {
   if (!admin) return;
   try {
     const { email, name, is_admin } = req.body || {};
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    const safeName = normalizeOptionalText(name, 120);
     const result = await pool.query(
       `
       UPDATE users
       SET email = $1, name = $2, is_admin = $3, updated_at = now()
       WHERE id = $4
       `,
-      [email, name || null, Boolean(is_admin), req.params.id]
+      [email.trim(), safeName, Boolean(is_admin), req.params.id]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -670,6 +793,9 @@ app.post('/api/admin/domains', async (req, res) => {
     if (!domainName) {
       return res.status(400).json({ error: 'Domain name is required' });
     }
+    if (domainName.length > 120) {
+      return res.status(400).json({ error: 'Domain name is too long' });
+    }
     const result = await pool.query(
       'INSERT INTO security_domains (name) VALUES ($1) RETURNING id',
       [domainName]
@@ -685,9 +811,16 @@ app.put('/api/admin/domains/:id', async (req, res) => {
   if (!admin) return;
   try {
     const { name } = req.body || {};
+    const domainName = String(name || '').trim();
+    if (!domainName) {
+      return res.status(400).json({ error: 'Domain name is required' });
+    }
+    if (domainName.length > 120) {
+      return res.status(400).json({ error: 'Domain name is too long' });
+    }
     const result = await pool.query(
       'UPDATE security_domains SET name = $1 WHERE id = $2',
-      [name, req.params.id]
+      [domainName, req.params.id]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Domain not found' });
@@ -730,6 +863,12 @@ app.post('/api/admin/controls', async (req, res) => {
     if (!controlCode || !controlText || !Number.isFinite(domainId)) {
       return res.status(400).json({ error: 'code, text, and domain_id are required' });
     }
+    if (controlCode.length > 32) {
+      return res.status(400).json({ error: 'Control code is too long' });
+    }
+    if (controlText.length > 1000) {
+      return res.status(400).json({ error: 'Control text is too long' });
+    }
     const result = await pool.query(
       `
       INSERT INTO security_controls (code, text, domain_id)
@@ -754,6 +893,12 @@ app.put('/api/admin/controls/:id', async (req, res) => {
     const domainId = Number(domain_id);
     if (!controlCode || !controlText || !Number.isFinite(domainId)) {
       return res.status(400).json({ error: 'code, text, and domain_id are required' });
+    }
+    if (controlCode.length > 32) {
+      return res.status(400).json({ error: 'Control code is too long' });
+    }
+    if (controlText.length > 1000) {
+      return res.status(400).json({ error: 'Control text is too long' });
     }
     const result = await pool.query(
       `
@@ -839,6 +984,18 @@ app.post('/api/admin/measures', async (req, res) => {
     if (!measureId || !measureText || !measureTags || !Number.isFinite(controlId)) {
       return res.status(400).json({ error: 'measure_id, measure, tags, and control_id are required' });
     }
+    if (measureId.length > 64) {
+      return res.status(400).json({ error: 'Measure ID is too long' });
+    }
+    if (!isValidTags(measureTags)) {
+      return res.status(400).json({ error: 'Invalid tags value' });
+    }
+    if (impact && !isValidImpactEffort(impact)) {
+      return res.status(400).json({ error: 'Invalid impact value' });
+    }
+    if (effort && !isValidImpactEffort(effort)) {
+      return res.status(400).json({ error: 'Invalid effort value' });
+    }
     const insertResult = await pool.query(
       `
       INSERT INTO action_items (measure_id, measure, comment, tags, control_id)
@@ -889,6 +1046,18 @@ app.put('/api/admin/measures/:id', async (req, res) => {
     const controlId = Number(control_id);
     if (!measureId || !measureText || !measureTags || !Number.isFinite(controlId)) {
       return res.status(400).json({ error: 'measure_id, measure, tags, and control_id are required' });
+    }
+    if (measureId.length > 64) {
+      return res.status(400).json({ error: 'Measure ID is too long' });
+    }
+    if (!isValidTags(measureTags)) {
+      return res.status(400).json({ error: 'Invalid tags value' });
+    }
+    if (impact && !isValidImpactEffort(impact)) {
+      return res.status(400).json({ error: 'Invalid impact value' });
+    }
+    if (effort && !isValidImpactEffort(effort)) {
+      return res.status(400).json({ error: 'Invalid effort value' });
     }
     const result = await pool.query(
       `

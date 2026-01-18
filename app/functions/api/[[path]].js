@@ -3,6 +3,13 @@ export async function onRequest(context) {
   const url = new URL(request.url);
   const path = url.pathname;
   
+  if (!env.JWT_SECRET) {
+    return new Response(JSON.stringify({ error: 'JWT_SECRET is not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  
   // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -385,7 +392,7 @@ async function handleSignIn(env, request, corsHeaders) {
       is_admin: Boolean(user.is_admin)
     };
     
-    const token = await generateJWT(userObj, env.JWT_SECRET || 'default-secret');
+    const token = await generateJWT(userObj, env.JWT_SECRET);
     
     return new Response(JSON.stringify({
       success: true,
@@ -422,7 +429,7 @@ async function handleVerifyToken(env, request, corsHeaders) {
     }
     
     const token = authHeader.substring(7);
-    const payload = await verifyJWT(token, env.JWT_SECRET || 'default-secret');
+    const payload = await verifyJWT(token, env.JWT_SECRET);
     
     if (!payload) {
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
@@ -517,7 +524,7 @@ async function handleGoogleAuth(env, request, corsHeaders) {
       is_admin: Boolean(user.is_admin)
     };
     
-    const token = await generateJWT(userObj, env.JWT_SECRET || 'default-secret');
+    const token = await generateJWT(userObj, env.JWT_SECRET);
     
     return new Response(JSON.stringify({
       success: true,
@@ -545,7 +552,7 @@ async function verifyUserAuth(request, env, userId) {
   
   const token = authHeader.substring(7);
   try {
-    const payload = await verifyJWT(token, env.JWT_SECRET || 'default-secret');
+    const payload = await verifyJWT(token, env.JWT_SECRET);
     if (!payload || payload.id.toString() !== userId.toString()) {
       return { success: false, error: 'Unauthorized', status: 403 };
     }

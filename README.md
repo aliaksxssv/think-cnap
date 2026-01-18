@@ -22,6 +22,12 @@ database:
   # OR use existing Kubernetes secret (recommended):
   # existingSecret: "think-cnap-db-secret"
 
+# JWT secret for signing auth tokens (REQUIRED)
+secrets:
+  jwtSecret: "your-strong-jwt-secret"
+  # OR use existing Kubernetes secret:
+  # existingSecret: "think-cnap-secrets"
+
 # Google OAuth Client ID (REQUIRED)
 secrets:
   googleClientId: "your-google-client-id.apps.googleusercontent.com"
