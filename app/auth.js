@@ -133,7 +133,7 @@ class ThinkCNAPAuth {
         }
 
         const fallbackButton = document.getElementById('google-signin-fallback-button');
-        if (fallbackButton) {
+            if (fallbackButton) {
             fallbackButton.disabled = true;
             fallbackButton.classList.add('opacity-50', 'cursor-not-allowed');
             fallbackButton.removeAttribute('onclick');

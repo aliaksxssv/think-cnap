@@ -424,6 +424,9 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID || '';
+    if (!clientId) {
+      return res.status(400).json({ error: 'Google authentication is not configured' });
+    }
     const payload = await verifyGoogleIdToken(credential, clientId);
     const { email, name, sub: googleId } = payload;
     if (!isValidEmail(email)) {
@@ -466,6 +469,14 @@ app.post('/api/auth/google', async (req, res) => {
     const token = await generateJWT(userObj, getJwtSecret());
     return res.json({ success: true, token, user: userObj });
   } catch (error) {
+    const message = String(error?.message || '');
+    if (
+      message.includes('matching Google key') ||
+      message.includes('audience') ||
+      message.includes('issuer')
+    ) {
+      return res.status(400).json({ error: 'Google authentication is not configured' });
+    }
     return res.status(500).json({ error: 'Google authentication failed', message: error.message });
   }
 });
