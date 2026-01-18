@@ -88,6 +88,36 @@ function buildPemFromX5c(x5c) {
   return `-----BEGIN CERTIFICATE-----\n${cert}\n-----END CERTIFICATE-----\n`;
 }
 
+async function verifyGoogleIdTokenViaTokenInfo(token, clientId) {
+  const response = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`
+  );
+  if (!response.ok) {
+    throw new Error('Google tokeninfo verification failed');
+  }
+  const payload = await response.json();
+
+  const now = Math.floor(Date.now() / 1000);
+  const exp = Number(payload.exp || 0);
+  const nbf = Number(payload.nbf || 0);
+  if (exp && exp < now) {
+    throw new Error('Google token expired');
+  }
+  if (nbf && nbf > now) {
+    throw new Error('Google token not active');
+  }
+
+  const issuer = payload.iss;
+  if (issuer && issuer !== 'accounts.google.com' && issuer !== 'https://accounts.google.com') {
+    throw new Error('Invalid Google token issuer');
+  }
+  if (clientId && payload.aud !== clientId) {
+    throw new Error('Invalid Google token audience');
+  }
+
+  return payload;
+}
+
 async function verifyGoogleIdToken(token, clientId) {
   const parts = token.split('.');
   if (parts.length !== 3) {
@@ -104,14 +134,14 @@ async function verifyGoogleIdToken(token, clientId) {
   const jwks = await getGoogleJwks();
   const key = jwks.find(k => k.kid === header.kid);
   const pem = buildPemFromX5c(key?.x5c);
-  if (!pem) {
-    throw new Error('Unable to find matching Google key');
-  }
-
-  const data = `${parts[0]}.${parts[1]}`;
-  const verified = crypto.verify('RSA-SHA256', Buffer.from(data), pem, signature);
-  if (!verified) {
-    throw new Error('Invalid Google token signature');
+  if (pem) {
+    const data = `${parts[0]}.${parts[1]}`;
+    const verified = crypto.verify('RSA-SHA256', Buffer.from(data), pem, signature);
+    if (!verified) {
+      return verifyGoogleIdTokenViaTokenInfo(token, clientId);
+    }
+  } else {
+    return verifyGoogleIdTokenViaTokenInfo(token, clientId);
   }
 
   const now = Math.floor(Date.now() / 1000);
