@@ -27,20 +27,14 @@ Create a `my-values.yaml` file with required configuration:
 # Database password (REQUIRED)
 database:
   password: "your-secure-password-here"
-  # OR use existing Kubernetes secret (recommended):
-  # existingSecret: "think-cnap-db-secret"
 
 # JWT secret for signing auth tokens (REQUIRED)
 secrets:
   jwtSecret: "your-strong-jwt-secret"
-  # OR use existing Kubernetes secret:
-  # existingSecret: "think-cnap-secrets"
 
 # Google OAuth Client ID (optional)
 secrets:
   googleClientId: "your-google-client-id.apps.googleusercontent.com"
-  # OR use existing Kubernetes secret:
-  # existingSecret: "think-cnap-secrets"
 ```
 
 ### 2. Install the Chart
