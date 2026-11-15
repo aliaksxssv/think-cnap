@@ -8,17 +8,20 @@ WORKDIR /app
 COPY app/package*.json ./
 
 # Install dependencies for API server
-RUN if [ -f package.json ]; then npm install --omit=dev; fi
+RUN npm ci --omit=dev
 
 # Copy application files from app source
 COPY app/ .
+
+# SQL migrations applied by the app on start (upgrades of existing databases)
+COPY sql/migrations/ ./sql/migrations/
 
 # Inject environment variables into HTML files
 # Note: Environment variables will be injected at runtime via entrypoint script
 # For now, we'll use a build-time replacement if GOOGLE_CLIENT_ID is available
 ARG GOOGLE_CLIENT_ID=""
 RUN if [ -n "$GOOGLE_CLIENT_ID" ]; then \
-      find . -name "*.html" -type f -exec sed -i "s|{{GOOGLE_CLIENT_ID}}|${GOOGLE_CLIENT_ID}|g" {} \; ; \
+      find ./public -name "*.html" -type f -exec sed -i "s|{{GOOGLE_CLIENT_ID}}|${GOOGLE_CLIENT_ID}|g" {} \; ; \
     fi
 
 # Production stage

@@ -2,10 +2,13 @@ class ThinkCNAPAuth {
     constructor() {
         this.currentUser = null;
         this.isInitialized = false;
-        // Get Google Client ID from environment variable or meta tag
-        this.googleClientId = window.GOOGLE_CLIENT_ID || 
+        // Google Client ID is injected at container start (GOOGLE_CLIENT_ID); empty disables Google Sign-In
+        this.googleClientId = window.GOOGLE_CLIENT_ID ||
                              document.querySelector('meta[name="google-client-id"]')?.content ||
                              '';
+        // Server feature flags (GET /api/config); defaults keep optional features off until loaded
+        this.config = { emailEnabled: false, googleEnabled: false };
+        this.configLoaded = this.loadConfig();
         this.init();
     }
 
@@ -13,6 +16,9 @@ class ThinkCNAPAuth {
         console.log('Initializing ThinkCNAP Authentication...');
         
         try {
+            await this.configLoaded;
+            this.applyConfigToUI();
+
             // Check for existing session
             await this.checkExistingSession();
             
@@ -29,15 +35,30 @@ class ThinkCNAPAuth {
 
     async checkExistingSession() {
         try {
-            // Check both legacy and current storage keys
+            // Check both mobile and desktop storage keys
             const token = localStorage.getItem('think_cnap_token') || localStorage.getItem('access_token');
-            const userData = localStorage.getItem('think_cnap_user');
+            const userData = localStorage.getItem('think_cnap_user') || localStorage.getItem('anonymous_user');
             
             console.log('🔍 Checking existing session:', { hasToken: !!token, hasUserData: !!userData });
             
             if (token && userData) {
                 try {
                     const user = JSON.parse(userData);
+                    
+                    // Handle anonymous users differently (no server verification needed)
+                    if (token === 'anonymous-token' && (user.isAnonymous || user.id === 'anonymous' || localStorage.getItem('anonymous_user'))) {
+                        console.log('🔍 Anonymous user detected in session check:', user);
+                        user.isAnonymous = true;
+                        this.currentUser = user;
+                        console.log('✅ Anonymous session restored for user:', user.email);
+                        
+                        const hasExistingData = localStorage.getItem(`think_cnap_scoring_${user.id}`);
+                        if (!hasExistingData) {
+                            this.shouldGenerateRandomMaturity = true;
+                        }
+                        
+                        return true;
+                    }
                     
                     // Verify token with server
                     const response = await fetch('/api/auth/verify', {
@@ -67,10 +88,57 @@ class ThinkCNAPAuth {
         }
     }
 
+    isAnonymousSession() {
+        if (!this.currentUser) {
+            return false;
+        }
+        const token = localStorage.getItem('think_cnap_token') || localStorage.getItem('access_token');
+        if (token !== 'anonymous-token') {
+            return false;
+        }
+        return Boolean(
+            this.currentUser.isAnonymous ||
+            this.currentUser.is_anonymous ||
+            this.currentUser.id === 'anonymous'
+        );
+    }
+
+    async loadConfig() {
+        try {
+            const response = await fetch('/api/config');
+            if (response.ok) {
+                this.config = { ...this.config, ...(await response.json()) };
+            }
+        } catch (error) {
+            console.warn('Failed to load app config:', error);
+        }
+        return this.config;
+    }
+
+    applyConfigToUI() {
+        // Password reset needs outbound email (SMTP); hide the link when it is not configured
+        document.querySelectorAll('[data-requires-email]').forEach(el => {
+            el.classList.toggle('hidden', !this.config.emailEnabled);
+        });
+    }
+
+    isGoogleClientConfigured() {
+        const value = String(this.googleClientId || '').trim();
+        return Boolean(value) && !value.startsWith('{{');
+    }
+
+    disableGoogleSignIn() {
+        // Not configured for this deployment: hide the whole Google block instead of showing an error
+        const section = document.getElementById('google-signin-section');
+        if (section) {
+            section.classList.add('hidden');
+        }
+    }
+
     async initGoogleAuth() {
         try {
             if (!this.isGoogleClientConfigured()) {
-                this.disableGoogleSignIn('Google Sign-In is not configured');
+                this.disableGoogleSignIn();
                 return;
             }
 
@@ -107,36 +175,11 @@ class ThinkCNAPAuth {
             this.renderGoogleSignInButton('google-signin-button');
         } catch (error) {
             console.error('Google OAuth initialization failed:', error);
-            this.disableGoogleSignIn('Google Sign-In is currently unavailable');
-        }
-    }
-
-    isGoogleClientConfigured() {
-        const value = String(this.googleClientId || '').trim();
-        return Boolean(value) && value !== '{{GOOGLE_CLIENT_ID}}';
-    }
-
-    disableGoogleSignIn(message) {
-        const googleButton = document.getElementById('google-signin-button');
-        if (googleButton) {
-            googleButton.innerHTML = '';
-        }
-
-        const fallback = document.getElementById('google-signin-fallback');
-        if (fallback) {
-            fallback.classList.remove('hidden');
-        }
-
-        const messageEl = document.getElementById('google-signin-message');
-        if (messageEl && message) {
-            messageEl.textContent = message;
-        }
-
-        const fallbackButton = document.getElementById('google-signin-fallback-button');
+            // Show fallback button immediately if initialization fails
+            const fallbackButton = document.getElementById('google-signin-fallback');
             if (fallbackButton) {
-            fallbackButton.disabled = true;
-            fallbackButton.classList.add('opacity-50', 'cursor-not-allowed');
-            fallbackButton.removeAttribute('onclick');
+                fallbackButton.classList.remove('hidden');
+            }
         }
     }
 
@@ -371,16 +414,18 @@ class ThinkCNAPAuth {
             const data = await response.json();
             
             if (response.ok) {
+                if (data.verification_required) {
+                    return { 
+                        success: true, 
+                        verification_required: true,
+                        message: data.message,
+                        email: data.email
+                    };
+                } else {
                     await this.setUserSession(data.user, data.token);
                     this.onAuthStateChange('signed-in');
                     return { success: true };
-            } else {
-                return { success: false, error: data.error };
                 }
-            if (response.ok) {
-                await this.setUserSession(data.user, data.token);
-                this.onAuthStateChange('signed-in');
-                return { success: true };
             } else {
                 return { success: false, error: data.error };
             }
@@ -390,9 +435,42 @@ class ThinkCNAPAuth {
         }
     }
 
+    async continueAnonymously() {
+        console.log('🖥️ Continuing anonymously...');
+        
+        try {
+            const anonymousUser = {
+                id: 'anonymous',
+                email: 'anonymous@thinkcnap.local',
+                name: 'Anonymous User',
+                isAnonymous: true
+            };
+            
+            this.currentUser = anonymousUser;
+            
+            localStorage.setItem('access_token', 'anonymous-token');
+            localStorage.setItem('anonymous_user', JSON.stringify(anonymousUser));
+            localStorage.setItem('think_cnap_token', 'anonymous-token');
+            localStorage.setItem('think_cnap_user', JSON.stringify(anonymousUser));
+            
+            const hasExistingData = localStorage.getItem(`think_cnap_scoring_${anonymousUser.id}`);
+            if (!hasExistingData) {
+                this.shouldGenerateRandomMaturity = true;
+            }
+            
+            this.onAuthStateChange('anonymous');
+        } catch (error) {
+            console.error('❌ Failed to continue anonymously:', error);
+        }
+    }
 
     async setUserSession(user, token) {
         this.currentUser = user;
+        // Clear any anonymous session leftovers
+        localStorage.removeItem('anonymous_user');
+        if (localStorage.getItem('access_token') === 'anonymous-token') {
+            localStorage.removeItem('access_token');
+        }
         localStorage.setItem('think_cnap_token', token);
         localStorage.setItem('think_cnap_user', JSON.stringify(user));
         console.log('User session set for:', user.email);
@@ -410,7 +488,7 @@ class ThinkCNAPAuth {
         
         if (isAdminPage) {
             // Redirect immediately before making API call
-            window.location.href = 'https://think-cnap-test.pages.dev/?signin=true';
+            window.location.href = '/?signin=true';
             return; // Exit early to prevent any further execution
         }
         
@@ -469,7 +547,7 @@ class ThinkCNAPAuth {
         const mainContent = document.getElementById('main-content');
         const userInfo = document.getElementById('user-info');
         
-        if (state === 'signed-in') {
+        if (state === 'signed-in' || state === 'anonymous') {
             if (authModal) authModal.classList.add('hidden');
             if (mainContent) mainContent.classList.remove('hidden');
             
@@ -502,7 +580,7 @@ class ThinkCNAPAuth {
                                         </div>
                                     </button>
                                 ` : ''}
-                                ${!this.currentUser.googleId ? `
+                                ${!this.currentUser.isAnonymous && !this.currentUser.googleId ? `
                                     <button onclick="auth.showChangePasswordModal(); auth.hideUserDropdown();" 
                                             class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition duration-200">
                                         <div class="flex items-center space-x-2">
@@ -539,6 +617,58 @@ class ThinkCNAPAuth {
             
             // Remove click outside listener when signed out
             document.removeEventListener('click', this.handleClickOutside.bind(this));
+        }
+    }
+
+    async verifyEmail(token) {
+        try {
+            console.log('Verifying email with token:', token);
+            
+            const response = await fetch('/api/auth/verify-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ token })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                await this.setUserSession(data.user, data.token);
+                this.onAuthStateChange('signed-in');
+                return { success: true, message: data.message };
+            } else {
+                return { success: false, error: data.error };
+            }
+        } catch (error) {
+            console.error('Email verification error:', error);
+            return { success: false, error: 'Email verification failed. Please try again.' };
+        }
+    }
+    
+    async resendVerificationEmail(email) {
+        try {
+            console.log('Resending verification email to:', email);
+            
+            const response = await fetch('/api/auth/resend-verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                return { success: true, message: data.message };
+            } else {
+                return { success: false, error: data.error };
+            }
+        } catch (error) {
+            console.error('Resend verification error:', error);
+            return { success: false, error: 'Failed to resend verification email. Please try again.' };
         }
     }
 
@@ -791,6 +921,40 @@ class ThinkCNAPAuth {
             return { measures: {} };
         }
 
+        // Anonymous users use localStorage
+        if (this.isAnonymousSession()) {
+            try {
+                const localKey = `think_cnap_scoring_${this.currentUser.id}`;
+                const stored = localStorage.getItem(localKey);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+
+                const defaultsResponse = await fetch('/api/scoring/default');
+                if (!defaultsResponse.ok) {
+                    return { measures: {} };
+                }
+                const defaultsData = await defaultsResponse.json();
+                const measures = {};
+                Object.entries(defaultsData?.measures || {}).forEach(([measureId, scoring]) => {
+                    measures[measureId] = {
+                        impact: scoring.impact,
+                        effort: scoring.effort,
+                        initial_maturity: scoring.before,
+                        present_maturity: scoring.maturity,
+                        desired_maturity: scoring.goal
+                    };
+                });
+
+                const payload = { measures };
+                localStorage.setItem(localKey, JSON.stringify(payload));
+                return payload;
+            } catch (error) {
+                console.error('Error loading anonymous scoring:', error);
+                return { measures: {} };
+            }
+        }
+
         // Registered users use database
         try {
             const token = localStorage.getItem('think_cnap_token');
@@ -823,55 +987,65 @@ class ThinkCNAPAuth {
             return false;
         }
 
-        // Registered users save to database
+        // Anonymous users save to localStorage
+        if (this.isAnonymousSession()) {
             try {
-                const token = localStorage.getItem('think_cnap_token');
-                
-                // Prepare scoring data for save - send all measures with data
-                const cleanedData = { measures: {} };
-                if (scoringData && scoringData.measures) {
-                    console.log('🔍 Processing scoring data for save:', scoringData.measures);
-                    for (const [measureId, scoring] of Object.entries(scoringData.measures)) {
-                        console.log(`📋 Measure ${measureId}:`, scoring);
-                        
-                        // Send all measures that have data
-                        if (scoring) {
-                            cleanedData.measures[measureId] = {
-                                impact: scoring.impact || 'medium',
-                                effort: scoring.effort || 'medium',
-                                initial_maturity: scoring.initial_maturity !== undefined ? scoring.initial_maturity : -1,
-                                present_maturity: scoring.present_maturity !== undefined ? scoring.present_maturity : -1,
-                                desired_maturity: scoring.desired_maturity !== undefined ? scoring.desired_maturity : -1
-                            };
-                            console.log(`✅ Added ${measureId} to save data:`, cleanedData.measures[measureId]);
-                        }
-                    }
-                }
-                
-                console.log('📤 Final cleaned data to send:', cleanedData);
-                
-
-                
-                const response = await fetch(`/api/user/${this.currentUser.id}/scoring`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(cleanedData)
-                });
-                
-                if (response.ok) {
-                    return true;
-                } else {
-                    const errorText = await response.text();
-                    console.error('Failed to save scoring to database:', response.status, errorText);
-                    return false;
-                }
+                const localKey = `think_cnap_scoring_${this.currentUser.id}`;
+                localStorage.setItem(localKey, JSON.stringify(scoringData || { measures: {} }));
+                return true;
             } catch (error) {
-                console.error('Error saving user scoring:', error);
+                console.error('Error saving anonymous scoring:', error);
                 return false;
             }
+        }
+
+        // Registered users save to database
+        try {
+            const token = localStorage.getItem('think_cnap_token');
+            
+            // Prepare scoring data for save - send all measures with data
+            const cleanedData = { measures: {} };
+            if (scoringData && scoringData.measures) {
+                console.log('🔍 Processing scoring data for save:', scoringData.measures);
+                for (const [measureId, scoring] of Object.entries(scoringData.measures)) {
+                    console.log(`📋 Measure ${measureId}:`, scoring);
+                    
+                    // Send all measures that have data
+                    if (scoring) {
+                        cleanedData.measures[measureId] = {
+                            impact: scoring.impact || 'medium',
+                            effort: scoring.effort || 'medium',
+                            initial_maturity: scoring.initial_maturity !== undefined ? scoring.initial_maturity : -1,
+                            present_maturity: scoring.present_maturity !== undefined ? scoring.present_maturity : -1,
+                            desired_maturity: scoring.desired_maturity !== undefined ? scoring.desired_maturity : -1
+                        };
+                        console.log(`✅ Added ${measureId} to save data:`, cleanedData.measures[measureId]);
+                    }
+                }
+            }
+            
+            console.log('📤 Final cleaned data to send:', cleanedData);
+            
+            const response = await fetch(`/api/user/${this.currentUser.id}/scoring`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(cleanedData)
+            });
+            
+            if (response.ok) {
+                return true;
+            } else {
+                const errorText = await response.text();
+                console.error('Failed to save scoring to database:', response.status, errorText);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error saving user scoring:', error);
+            return false;
+        }
     }
 }
 

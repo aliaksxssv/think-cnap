@@ -70,6 +70,29 @@ spec:
                   name: {{ if .Values.secrets.existingSecret }}{{ .Values.secrets.existingSecret }}{{ else }}{{ include "think-cnap.fullname" . }}-secrets{{ end }}
                   key: jwtSecret
             # Note: GOOGLE_CLIENT_ID is also injected into HTML files at runtime via inject-env.sh
+            - name: APP_URL
+              value: {{ .Values.appUrl | default "" | quote }}
+            {{- if .Values.smtp.host }}
+            {{- if not .Values.smtp.from }}
+            {{- fail "\n\n❌ ERROR: smtp.from is required when smtp.host is set\n\n" }}
+            {{- end }}
+            - name: SMTP_HOST
+              value: {{ .Values.smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.smtp.port | default 587 | quote }}
+            - name: SMTP_SECURE
+              value: {{ .Values.smtp.secure | default false | quote }}
+            - name: SMTP_USER
+              value: {{ .Values.smtp.user | default "" | quote }}
+            - name: SMTP_FROM
+              value: {{ .Values.smtp.from | quote }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.secrets.existingSecret }}{{ .Values.secrets.existingSecret }}{{ else }}{{ include "think-cnap.fullname" . }}-secrets{{ end }}
+                  key: smtpPassword
+                  optional: true
+            {{- end }}
           resources:
             {{- toYaml .Values.resources.app | nindent 12 }}
           securityContext:
