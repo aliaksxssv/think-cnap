@@ -13,7 +13,7 @@ ThinkCNAP is a security maturity assessment and attack simulation platform for c
 
 ## Application Preview
 
-![ThinkCNAP application screenshot](images/thinkcnap_github.png)
+![ThinkCNAP application screenshot](images/thinkcnap_preview.png)
 
 ## SaaS Version
 
