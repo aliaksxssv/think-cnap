@@ -2,10 +2,13 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const { Pool } = require('pg');
+const { runMigrations } = require('./migrate');
+const mailer = require('./mailer');
 
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
 const JWT_SECRET = process.env.JWT_SECRET;
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
 if (!JWT_SECRET) {
   console.error('JWT_SECRET is required');
@@ -20,12 +23,14 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || ''
 });
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '5mb' }));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.path === '/' || req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css')) {
+  if (req.path.startsWith('/mobile-app/')) {
+    res.setHeader('Cache-Control', 'public, max-age=300');
+  } else if (req.path === '/' || req.path.endsWith('.html') || req.path.endsWith('.js') || req.path.endsWith('.css')) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -248,12 +253,12 @@ function normalizeOptionalText(value, maxLen) {
 async function fetchUserByEmail(email) {
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, name, password_hash, google_id, is_admin FROM users WHERE email = $1',
+      'SELECT id, email, name, password_hash, google_id, is_admin, email_verified FROM users WHERE email = $1',
       [email]
     );
     return rows[0] || null;
   } catch (error) {
-    if (String(error.message || '').includes('is_admin')) {
+    if (String(error.message || '').includes('is_admin') || String(error.message || '').includes('email_verified')) {
       const { rows } = await pool.query(
         'SELECT id, email, name, password_hash, google_id FROM users WHERE email = $1',
         [email]
@@ -437,7 +442,10 @@ app.get('/api/scoring/default', async (req, res) => {
         effort: row.effort,
         initial_maturity: row.before_score,
         present_maturity: row.maturity_score,
-        desired_maturity: row.goal_score
+        desired_maturity: row.goal_score,
+        before: row.before_score,
+        maturity: row.maturity_score,
+        goal: row.goal_score
       };
     }
     res.json({ measures });
@@ -527,14 +535,25 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 
     const passwordHash = await hashPassword(password);
+    const verificationRequired = mailer.isEmailEnabled();
     const insert = await pool.query(
       `
-      INSERT INTO users (email, password_hash, name, created_at, updated_at)
-      VALUES ($1, $2, $3, now(), now())
+      INSERT INTO users (email, password_hash, name, email_verified, email_verified_at, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, CASE WHEN $4 THEN now() END, now(), now())
       RETURNING id, email, name, is_admin
       `,
-      [email.trim(), passwordHash, email.split('@')[0]]
+      [email.trim(), passwordHash, email.split('@')[0], !verificationRequired]
     );
+
+    if (verificationRequired) {
+      await sendVerificationToken(req, insert.rows[0].id, insert.rows[0].email);
+      return res.json({
+        success: true,
+        message: 'Registration successful! Please check your email to verify your account.',
+        email: insert.rows[0].email,
+        verification_required: true
+      });
+    }
 
     const userObj = {
       id: insert.rows[0].id,
@@ -569,6 +588,14 @@ app.post('/api/auth/signin', async (req, res) => {
     const passwordHash = await hashPassword(password);
     if (passwordHash !== user.password_hash) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    if (mailer.isEmailEnabled() && user.email_verified === false) {
+      return res.status(403).json({
+        error: 'Email verification required. Please check your email and click the verification link.',
+        verification_required: true,
+        email: user.email
+      });
     }
 
     const userObj = {
@@ -653,7 +680,7 @@ app.get('/api/admin/users', async (req, res) => {
   if (!admin) return;
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, name, is_admin, created_at, updated_at FROM users ORDER BY created_at DESC'
+      'SELECT id, email, name, is_admin, email_verified, created_at, updated_at FROM users ORDER BY created_at DESC'
     );
     res.json(rows);
   } catch (error) {
@@ -1496,16 +1523,616 @@ app.get('/api/mitre/:id/examples', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// App config (feature flags for the frontend)
+// ---------------------------------------------------------------------------
+
+app.get('/api/config', (req, res) => {
+  res.json({
+    emailEnabled: mailer.isEmailEnabled(),
+    googleEnabled: Boolean(process.env.GOOGLE_CLIENT_ID)
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Email verification & password reset (only active when SMTP is configured)
+// ---------------------------------------------------------------------------
+
+const EMAIL_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+
+function getBaseUrl(req) {
+  if (process.env.APP_URL) {
+    return process.env.APP_URL.replace(/\/+$/, '');
+  }
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
+  return `${proto}://${req.get('host')}`;
+}
+
+function generateHexToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function requireEmailEnabled(res) {
+  if (!mailer.isEmailEnabled()) {
+    res.status(404).json({ error: 'Email features are not enabled on this server' });
+    return false;
+  }
+  return true;
+}
+
+async function sendVerificationToken(req, userId, email) {
+  await pool.query(
+    'UPDATE email_verification_tokens SET used_at = now() WHERE user_id = $1 AND used_at IS NULL',
+    [userId]
+  );
+  const token = generateHexToken();
+  await pool.query(
+    'INSERT INTO email_verification_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+    [userId, token, new Date(Date.now() + EMAIL_TOKEN_TTL_MS)]
+  );
+  try {
+    await mailer.sendVerificationEmail(email, `${getBaseUrl(req)}/verify-email.html?token=${token}`);
+  } catch (error) {
+    console.error('Failed to send verification email:', error.message);
+  }
+}
+
+async function handleVerifyEmail(req, res, token) {
+  try {
+    if (!token) {
+      return res.status(400).json({ error: 'Verification token is required' });
+    }
+    const { rows } = await pool.query(
+      `
+      SELECT vt.id, vt.user_id, vt.expires_at, u.email, u.name, u.is_admin
+      FROM email_verification_tokens vt
+      JOIN users u ON vt.user_id = u.id
+      WHERE vt.token = $1 AND vt.used_at IS NULL
+      `,
+      [token]
+    );
+    const record = rows[0];
+    if (!record) {
+      return res.status(400).json({ error: 'Invalid or expired verification token' });
+    }
+    if (new Date(record.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Verification token has expired' });
+    }
+
+    await pool.query(
+      'UPDATE users SET email_verified = TRUE, email_verified_at = now(), updated_at = now() WHERE id = $1',
+      [record.user_id]
+    );
+    await pool.query('UPDATE email_verification_tokens SET used_at = now() WHERE id = $1', [record.id]);
+
+    const userObj = {
+      id: record.user_id,
+      email: record.email,
+      name: record.name,
+      isAnonymous: false,
+      email_verified: true,
+      is_admin: Boolean(record.is_admin)
+    };
+    const jwtToken = await generateJWT(userObj, getJwtSecret());
+    return res.json({
+      success: true,
+      message: 'Email verified successfully! You can now access your account.',
+      user: userObj,
+      token: jwtToken
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Email verification failed', message: error.message });
+  }
+}
+
+app.get('/api/auth/verify-email', (req, res) => handleVerifyEmail(req, res, req.query.token));
+app.post('/api/auth/verify-email', (req, res) => handleVerifyEmail(req, res, (req.body || {}).token));
+
+app.post('/api/auth/resend-verification', async (req, res) => {
+  if (!requireEmailEnabled(res)) return;
+  try {
+    const { email } = req.body || {};
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+    const user = await fetchUserByEmail(email.trim());
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (user.email_verified !== false) {
+      return res.status(400).json({ error: 'Email is already verified' });
+    }
+    await sendVerificationToken(req, user.id, user.email);
+    return res.json({ success: true, message: 'Verification email sent! Please check your email.' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to resend verification email', message: error.message });
+  }
+});
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+  if (!requireEmailEnabled(res)) return;
+  try {
+    const { email } = req.body || {};
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Email address is required' });
+    }
+    const genericMessage = 'If an account with that email exists, a password reset link has been sent.';
+    const user = await fetchUserByEmail(email.trim());
+    if (!user || user.email_verified === false) {
+      return res.json({ success: true, message: genericMessage });
+    }
+    if (user.google_id && !user.password_hash) {
+      return res.status(400).json({ error: 'This account uses Google sign-in. Please sign in with Google instead.' });
+    }
+
+    const token = generateHexToken();
+    await pool.query(
+      'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+      [user.id, token, new Date(Date.now() + EMAIL_TOKEN_TTL_MS)]
+    );
+    try {
+      await mailer.sendPasswordResetEmail(user.email, `${getBaseUrl(req)}/reset-password?token=${token}`);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error.message);
+      return res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
+    }
+    return res.json({ success: true, message: genericMessage });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+async function findResetToken(token) {
+  const { rows } = await pool.query(
+    `
+    SELECT rt.id, rt.user_id, rt.expires_at, rt.used_at, u.email, u.google_id, u.password_hash
+    FROM password_reset_tokens rt
+    JOIN users u ON rt.user_id = u.id
+    WHERE rt.token = $1
+    `,
+    [token]
+  );
+  const record = rows[0];
+  if (!record) return { error: 'Invalid reset token' };
+  if (record.used_at) return { error: 'This reset link has already been used' };
+  if (new Date(record.expires_at) < new Date()) {
+    return { error: 'Reset token has expired. Please request a new password reset.' };
+  }
+  return { record };
+}
+
+app.post('/api/auth/verify-reset-token', async (req, res) => {
+  if (!requireEmailEnabled(res)) return;
+  try {
+    const { token } = req.body || {};
+    if (!token) {
+      return res.status(400).json({ error: 'Reset token is required' });
+    }
+    const { record, error } = await findResetToken(token);
+    if (error) {
+      return res.status(400).json({ error });
+    }
+    return res.json({ success: true, email: record.email });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  if (!requireEmailEnabled(res)) return;
+  try {
+    const { token, newPassword } = req.body || {};
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Reset token and new password are required' });
+    }
+    if (!isValidPassword(newPassword)) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long' });
+    }
+    const { record, error } = await findResetToken(token);
+    if (error) {
+      return res.status(400).json({ error });
+    }
+    if (record.google_id && !record.password_hash) {
+      return res.status(400).json({ error: 'Cannot reset password for Google OAuth users' });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    await pool.query('UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2', [passwordHash, record.user_id]);
+    await pool.query('UPDATE password_reset_tokens SET used_at = now() WHERE id = $1', [record.id]);
+    await pool.query('DELETE FROM password_reset_tokens WHERE user_id = $1 AND expires_at < now()', [record.user_id]);
+
+    return res.json({
+      success: true,
+      message: 'Password reset successfully. You can now sign in with your new password.'
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Attack simulation API tokens (also used by /api/integrations/*)
+// ---------------------------------------------------------------------------
+
+const API_TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000;
+
+function generateApiToken() {
+  return crypto.randomBytes(32).toString('base64url');
+}
+
+async function revokeActiveApiTokens(userId) {
+  await pool.query(
+    'UPDATE attack_simulation_tokens SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL',
+    [userId]
+  );
+}
+
+async function createApiToken(userId) {
+  await revokeActiveApiTokens(userId);
+  const { rows } = await pool.query(
+    `
+    INSERT INTO attack_simulation_tokens (user_id, token, expires_at)
+    VALUES ($1, $2, $3)
+    RETURNING id, token, expires_at, created_at
+    `,
+    [userId, generateApiToken(), new Date(Date.now() + API_TOKEN_TTL_MS)]
+  );
+  return rows[0];
+}
+
+async function getActiveApiToken(userId) {
+  const { rows } = await pool.query(
+    `
+    SELECT id, token, expires_at, created_at
+    FROM attack_simulation_tokens
+    WHERE user_id = $1 AND revoked_at IS NULL
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [userId]
+  );
+  const record = rows[0];
+  if (!record) return null;
+  if (new Date(record.expires_at) < new Date()) {
+    await pool.query('UPDATE attack_simulation_tokens SET revoked_at = now() WHERE id = $1', [record.id]);
+    return null;
+  }
+  return record;
+}
+
+// Resolves an opaque API token to its record; sends a 401 and returns null when unusable
+async function requireApiToken(token, res) {
+  if (!token) {
+    res.status(401).json({ error: 'Missing Authorization header' });
+    return null;
+  }
+  const { rows } = await pool.query(
+    'SELECT id, user_id, expires_at, revoked_at FROM attack_simulation_tokens WHERE token = $1',
+    [token]
+  );
+  const record = rows[0];
+  if (!record) {
+    res.status(401).json({ error: 'Invalid token' });
+    return null;
+  }
+  if (record.revoked_at) {
+    res.status(401).json({ error: 'Token revoked' });
+    return null;
+  }
+  if (new Date(record.expires_at) < new Date()) {
+    await pool.query('UPDATE attack_simulation_tokens SET revoked_at = now() WHERE id = $1', [record.id]);
+    res.status(401).json({ error: 'Token expired' });
+    return null;
+  }
+  await pool.query('UPDATE attack_simulation_tokens SET last_used_at = now() WHERE id = $1', [record.id]);
+  return record;
+}
+
+function getBearerToken(req) {
+  const authHeader = req.headers.authorization || '';
+  return authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+}
+
+async function requireRegisteredUser(req, res) {
+  const payload = await getAuthPayload(req, res);
+  if (!payload) return null;
+  if (payload.isAnonymous === true || payload.is_anonymous === true) {
+    res.status(403).json({ error: 'Anonymous access is not allowed' });
+    return null;
+  }
+  return payload;
+}
+
+function formatApiToken(record) {
+  return {
+    success: true,
+    token: record.token,
+    expires_at: record.expires_at,
+    created_at: record.created_at
+  };
+}
+
+app.get('/attack-simulation', async (req, res) => {
+  try {
+    const payload = await requireRegisteredUser(req, res);
+    if (!payload) return;
+    const record = (await getActiveApiToken(payload.id)) || (await createApiToken(payload.id));
+    return res.json(formatApiToken(record));
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+});
+
+app.post('/attack-simulation', async (req, res) => {
+  try {
+    const payload = await requireRegisteredUser(req, res);
+    if (!payload) return;
+    const body = req.body || {};
+
+    if (body.regenerate === true) {
+      return res.json(formatApiToken(await createApiToken(payload.id)));
+    }
+
+    if (!body.token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+    const { rows } = await pool.query(
+      'SELECT id, expires_at, revoked_at FROM attack_simulation_tokens WHERE user_id = $1 AND token = $2',
+      [payload.id, body.token]
+    );
+    const record = rows[0];
+    if (!record || record.revoked_at) {
+      return res.json({ success: true, valid: false, reason: 'Token not found', expires_at: null });
+    }
+    if (new Date(record.expires_at) < new Date()) {
+      await pool.query('UPDATE attack_simulation_tokens SET revoked_at = now() WHERE id = $1', [record.id]);
+      return res.json({ success: true, valid: false, reason: 'Token expired', expires_at: null });
+    }
+    await pool.query('UPDATE attack_simulation_tokens SET last_used_at = now() WHERE id = $1', [record.id]);
+    return res.json({ success: true, valid: true, reason: null, expires_at: record.expires_at });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Attack simulation reports
+// ---------------------------------------------------------------------------
+
+app.post('/attack-simulation-report', async (req, res) => {
+  try {
+    const { token, report } = req.body || {};
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+    if (!report) {
+      return res.status(400).json({ error: 'Report payload is required' });
+    }
+    const record = await requireApiToken(token, res);
+    if (!record) return;
+
+    const reportJson = typeof report === 'string' ? report : JSON.stringify(report);
+    await pool.query(
+      `
+      INSERT INTO attack_simulation_reports (token_id, user_id, report_json, created_at, updated_at)
+      VALUES ($1, $2, $3, now(), now())
+      ON CONFLICT (token_id) DO UPDATE
+      SET report_json = EXCLUDED.report_json, updated_at = now()
+      `,
+      [record.id, record.user_id, reportJson]
+    );
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+});
+
+app.get('/attack-simulation-report', async (req, res) => {
+  try {
+    const payload = await requireRegisteredUser(req, res);
+    if (!payload) return;
+    const activeToken = await getActiveApiToken(payload.id);
+    if (!activeToken) {
+      return res.json({ success: true, report: null });
+    }
+    const { rows } = await pool.query(
+      'SELECT report_json, created_at, updated_at FROM attack_simulation_reports WHERE token_id = $1',
+      [activeToken.id]
+    );
+    if (!rows[0]) {
+      return res.json({ success: true, report: null });
+    }
+    let report = rows[0].report_json;
+    try {
+      report = JSON.parse(report);
+    } catch (error) {
+      // plain-text reports are returned as-is
+    }
+    return res.json({
+      success: true,
+      report,
+      created_at: rows[0].created_at,
+      updated_at: rows[0].updated_at
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal Server Error', message: error.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Integrations (opaque API token auth)
+// ---------------------------------------------------------------------------
+
+app.get('/api/integrations/get-user-aws-maturity', async (req, res) => {
+  try {
+    const record = await requireApiToken(getBearerToken(req), res);
+    if (!record) return;
+
+    const { rows } = await pool.query(
+      `
+      SELECT
+        d.id   AS domain_id,
+        d.name AS domain_name,
+        c.id   AS control_id,
+        c.code AS control_code,
+        c.text AS control_text,
+        a.measure_id,
+        a.measure,
+        a.comment,
+        COALESCE(u.impact,         def.impact)         AS impact,
+        COALESCE(u.effort,         def.effort)         AS effort,
+        COALESCE(u.before_score,   def.before_score)   AS initial_maturity,
+        COALESCE(u.maturity_score, def.maturity_score) AS present_maturity,
+        COALESCE(u.goal_score,     def.goal_score)     AS desired_maturity
+      FROM security_domains d
+      JOIN security_controls c ON c.domain_id  = d.id
+      JOIN action_items a      ON a.control_id = c.id AND a.tags = 'aws'
+      LEFT JOIN scoring def    ON def.measure_id = a.measure_id AND def.is_default = 1
+      LEFT JOIN scoring u      ON u.measure_id  = a.measure_id
+                              AND u.user_id    = $1
+                              AND u.is_default = 0
+      ORDER BY d.id, c.id, a.measure_id
+      `,
+      [String(record.user_id)]
+    );
+
+    const domainsMap = new Map();
+    for (const row of rows) {
+      if (!domainsMap.has(row.domain_id)) {
+        domainsMap.set(row.domain_id, { id: row.domain_id, name: row.domain_name, controls: new Map() });
+      }
+      const domain = domainsMap.get(row.domain_id);
+      if (!domain.controls.has(row.control_id)) {
+        domain.controls.set(row.control_id, {
+          id: row.control_id,
+          code: row.control_code,
+          description: row.control_text,
+          measures: []
+        });
+      }
+      domain.controls.get(row.control_id).measures.push({
+        measure_id: row.measure_id,
+        measure: row.measure,
+        comment: row.comment || '',
+        impact: row.impact,
+        effort: row.effort,
+        initial_maturity: row.initial_maturity,
+        present_maturity: row.present_maturity,
+        desired_maturity: row.desired_maturity
+      });
+    }
+
+    const domains = Array.from(domainsMap.values()).map(d => ({
+      id: d.id,
+      name: d.name,
+      controls: Array.from(d.controls.values())
+    }));
+    return res.json({ generated_at: new Date().toISOString(), domains });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
+function isValidMaturity(value) {
+  return Number.isInteger(value) && value >= -1 && value <= 5;
+}
+
+app.post('/api/integrations/update-measure', async (req, res) => {
+  try {
+    const record = await requireApiToken(getBearerToken(req), res);
+    if (!record) return;
+    const userId = String(record.user_id);
+
+    const { measure_id, impact, effort, initial_maturity, present_maturity, desired_maturity } = req.body || {};
+    if (!measure_id) {
+      return res.status(400).json({ error: 'measure_id is required' });
+    }
+    if ((impact !== undefined && !isValidImpactEffort(impact)) || (effort !== undefined && !isValidImpactEffort(effort))) {
+      return res.status(400).json({ error: 'impact and effort must be one of: low, medium, high' });
+    }
+    for (const value of [initial_maturity, present_maturity, desired_maturity]) {
+      if (value !== undefined && !isValidMaturity(value)) {
+        return res.status(400).json({ error: 'Maturity values must be integers from -1 to 5' });
+      }
+    }
+
+    const measure = await pool.query('SELECT measure_id FROM action_items WHERE measure_id = $1', [measure_id]);
+    if (measure.rows.length === 0) {
+      return res.status(404).json({ error: `measure_id '${measure_id}' not found` });
+    }
+
+    // Preserve fields that were not provided (user override, else default)
+    const { rows } = await pool.query(
+      `
+      SELECT
+        COALESCE(u.impact,         d.impact)         AS impact,
+        COALESCE(u.effort,         d.effort)         AS effort,
+        COALESCE(u.before_score,   d.before_score)   AS initial_maturity,
+        COALESCE(u.maturity_score, d.maturity_score) AS present_maturity,
+        COALESCE(u.goal_score,     d.goal_score)     AS desired_maturity
+      FROM scoring d
+      LEFT JOIN scoring u ON d.measure_id = u.measure_id AND u.user_id = $1 AND u.is_default = 0
+      WHERE d.measure_id = $2 AND d.is_default = 1
+      `,
+      [userId, measure_id]
+    );
+    const current = rows[0] || {};
+
+    const next = {
+      impact: impact ?? current.impact ?? 'medium',
+      effort: effort ?? current.effort ?? 'medium',
+      initial_maturity: initial_maturity ?? current.initial_maturity ?? -1,
+      present_maturity: present_maturity ?? current.present_maturity ?? -1,
+      desired_maturity: desired_maturity ?? current.desired_maturity ?? -1
+    };
+
+    await pool.query(
+      `
+      INSERT INTO scoring (measure_id, user_id, impact, effort, before_score, maturity_score, goal_score, is_default)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
+      ON CONFLICT (measure_id, user_id, is_default) DO UPDATE
+      SET impact = EXCLUDED.impact,
+          effort = EXCLUDED.effort,
+          before_score = EXCLUDED.before_score,
+          maturity_score = EXCLUDED.maturity_score,
+          goal_score = EXCLUDED.goal_score
+      `,
+      [measure_id, userId, next.impact, next.effort, next.initial_maturity, next.present_maturity, next.desired_maturity]
+    );
+
+    return res.json({ success: true, measure_id, ...next });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error', message: error.message });
+  }
+});
+
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
-app.use(express.static(path.join(__dirname)));
+// Mobile devices get the PWA; everything else falls through to the desktop app
+const MOBILE_UA = /iPhone|iPad|iPod|Android|CriOS|FxiOS|EdgiOS|webOS|BlackBerry|IEMobile|Opera Mini|Windows Phone|WPDesktop|Tablet|Mobi|Touch/i;
+app.get(['/', '/index.html'], (req, res, next) => {
+  const forceDesktop = req.query.desktop !== undefined || req.query.view === 'desktop';
+  if (MOBILE_UA.test(req.headers['user-agent'] || '') && !forceDesktop) {
+    return res.sendFile(path.join(PUBLIC_DIR, 'mobile-app', 'index.html'));
+  }
+  return next();
+});
+
+app.use(express.static(PUBLIC_DIR, { extensions: ['html'] }));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`ThinkCNAP app listening on port ${PORT}`);
-});
+runMigrations(pool)
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`ThinkCNAP app listening on port ${PORT}`);
+    });
+  })
+  .catch(error => {
+    console.error('Database migration failed:', error);
+    process.exit(1);
+  });

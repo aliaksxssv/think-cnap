@@ -18,13 +18,25 @@ done
 
 echo "PostgreSQL is ready. Running migrations..."
 
+# Track applied migrations; the app applies any pending ones on start (app/migrate.js),
+# which is how existing installs receive new migrations on upgrade
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    filename TEXT PRIMARY KEY,
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);"
+
 # Run all migration files in order
 if [ -d "$MIGRATIONS_DIR" ]; then
     for migration in $(ls -1 "$MIGRATIONS_DIR"/*.sql 2>/dev/null | sort); do
-        echo "Applying migration: $(basename $migration)"
-        psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f "$migration" || {
-            echo "Warning: Migration $(basename $migration) failed or already applied"
-        }
+        name=$(basename "$migration")
+        echo "Applying migration: $name"
+        if psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 --single-transaction -f "$migration"; then
+            psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+                -c "INSERT INTO schema_migrations (filename) VALUES ('$name') ON CONFLICT DO NOTHING;"
+        else
+            echo "Warning: Migration $name failed; the app will retry it on start"
+        fi
     done
     echo "Migrations completed"
 else

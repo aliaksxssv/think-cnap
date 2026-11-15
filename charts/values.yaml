@@ -109,6 +109,25 @@ secrets:
   # Optional: leave empty to disable Google Sign-In
   googleClientId: ""
   
+  # SMTP password (only used when smtp.host is set)
+  smtpPassword: ""
+
   # OR use existing Kubernetes secret (recommended for production)
   # existingSecret: "think-cnap-secrets"  # Secret must have 'jwtSecret' and 'googleClientId' keys
+  #                                       # (and optionally 'smtpPassword')
+
+# Public URL of this ThinkCNAP instance, e.g. "https://thinkcnap.example.com".
+# Used to build links in verification / password reset emails. Recommended when
+# SMTP is enabled; if empty, links are built from the request Host header.
+appUrl: ""
+
+# Outbound email (optional). Leave host empty to disable email features:
+# users can sign in right after sign-up (no email verification) and the
+# "Forgot Password?" link is hidden (admins can still reset passwords).
+smtp:
+  host: ""
+  port: 587
+  secure: false   # true for implicit TLS (usually port 465)
+  user: ""
+  from: ""        # e.g. "ThinkCNAP <noreply@example.com>"; required when host is set
   
